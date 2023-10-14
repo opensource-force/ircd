@@ -52,9 +52,15 @@ proc setUser(c: Client, args: seq[string]) =
 proc joinChannel(c: Client, args: seq[string]) =
   echo "JOIN not implemented yet."
 
+# privMessage
+# Received the PRIVMSG command
+proc privMessage(c: Client, args: seq[string], message: string) =
+  # TODO: Need to finish this
+  echo fmt"got a message with text: {message}"
+
 # cmdHandler
 # Handles incoming commands from Client sockets.
-proc cmdHandler*(c: Client, command: string, args: seq[string]) =
+proc cmdHandler*(c: Client, command: string, args: seq[string], message: string) =
   # Handle pre-registration commands
   case command:
   of "PASS": setPass(c, args)
@@ -71,3 +77,4 @@ proc cmdHandler*(c: Client, command: string, args: seq[string]) =
   # Handle post-registration commands
   case command:
   of "JOIN": joinChannel(c, args)
+  of "PRIVMSG": privMessage(c, args, message)
