@@ -9,6 +9,7 @@ type
     gotPass*, gotNick*, gotUser*: bool
     registered*: bool
     nickname*: string
+    ipAddr*: string
 
 var
   s*: Server
