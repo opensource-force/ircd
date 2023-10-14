@@ -1,7 +1,9 @@
-import strutils
+import strutils, strformat
 import ./data
 import ./helpers
 
+# setPass
+# Received the PASS command
 proc setPass(c: Client, args: seq[string]) =
   if c.registered:
     errAlreadyRegistered(c)
@@ -15,15 +17,20 @@ proc setPass(c: Client, args: seq[string]) =
   
   echo(args)
 
+# setNick
+# Received the NICK command
 proc setNick(c: Client, args: seq[string]) =
   if args.len == 0:
     errNeedMoreParams(c)
     return
   
+  c.nickname = args[0]
   c.gotNick = true
 
   echo(args)
 
+# setUser
+# Received the USER command
 proc setUser(c: Client, args: seq[string]) =
   if c.registered:
     return
@@ -40,7 +47,15 @@ proc setUser(c: Client, args: seq[string]) =
 
   echo(args)
 
+# joinChannel
+# Received the JOIN command
+proc joinChannel(c: Client, args: seq[string]) =
+  echo "JOIN not implemented yet."
+
+# cmdHandler
+# Handles incoming commands from Client sockets.
 proc cmdHandler*(c: Client, command: string, args: seq[string]) =
+  # Handle pre-registration commands
   case command:
   of "PASS": setPass(c, args)
   of "NICK": setNick(c, args)
@@ -49,5 +64,9 @@ proc cmdHandler*(c: Client, command: string, args: seq[string]) =
   if c.gotPass and c.gotNick and c.gotUser and c.registered == false:
     c.registered = true
     
-    echo("Registered!")
-    discard sendClient(c, "Registered!")
+    echo(fmt"{c.nickname} Registered!")
+    discard sendMotd(c)
+  
+  # Handle post-registration commands
+  case command:
+  of "JOIN": joinChannel(c, args)

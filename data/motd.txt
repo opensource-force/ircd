@@ -1,0 +1,13 @@
+
+This is the MOTD
+it has multiple lines
+
+And should be able to skip lines
+
+______________________________
+|                            |
+|    and keep spacing        |
+|____________________________|
+.. It doesn't keep spacing, but we can add blank ASCII characters to make it happen later!
+
+Yay us!
