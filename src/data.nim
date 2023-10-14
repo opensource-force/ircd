@@ -8,6 +8,7 @@ type
     socket*: AsyncSocket
     gotPass*, gotNick*, gotUser*: bool
     registered*: bool
+    nickname*: string
 
 var
   s*: Server
