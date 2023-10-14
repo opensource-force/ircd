@@ -32,13 +32,10 @@ proc setNick(c: Client, args: seq[string]) =
 # setUser
 # Received the USER command
 proc setUser(c: Client, args: seq[string], message: string) =
-  echo fmt"arg0: {args[0]}"
-  echo fmt"arg1: {args[1]}"
-  echo fmt"message: {message}"
   if c.registered:
     return
   
-  if args.len < 4:
+  if args.len < 3:
     errNeedMoreParams(c)
     return
   
@@ -57,16 +54,17 @@ proc joinChannel(c: Client, args: seq[string]) =
 # privMessage
 # Received the PRIVMSG command
 proc privMessage(c: Client, args: seq[string], message: string) =
-  # TODO: Need to finish this
-  echo fmt"got a message with text: {message} from {args[0]}"
+  echo fmt"got message with text: {message}"
   let sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
   let recipient = getClientByNickname(args[0])
 
   if recipient.isNil:
+    echo "didn't find recipient"
     return
 
   let msg = fmt":{sender} PRIVMSG {recipient.nickname} :{message}"
-
+  echo fmt"sending: {msg} to {recipient.nickname}"
+  discard sendClient(recipient, msg)
 
 # cmdHandler
 # Handles incoming commands from Client sockets.

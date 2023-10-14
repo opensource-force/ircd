@@ -1,4 +1,4 @@
-import asyncnet, asyncdispatch, strutils, net, strformat
+import asyncnet, asyncdispatch, strutils, net
 import ./data
 import ./args
 import ./helpers
@@ -10,7 +10,6 @@ proc clientHandler(c: Client) {.async.} =
   s.clients.add(c)
   while true:
     let data = await c.socket.recvLine()
-    echo fmt"got data: {data}"
     let parts = data.split(':')
     let args = splitWhitespace(parts[0])
     var message: string = ""
