@@ -69,6 +69,13 @@ proc removeClientbyIp*(ip: string) =
   if toRem != nil:
     s.clients.delete(s.clients.find(toRem))
 
+# getClientbyNickname
+# Finds a connected client by nickname
+proc getClientbyNickname*(nick: string): Client =
+  for a in s.clients:
+    if a.nickname == nick:
+      return a
+
 proc removeClientbyNickname*(nick: string) =
   var toRem: Client
 
