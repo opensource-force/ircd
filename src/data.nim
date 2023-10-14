@@ -9,6 +9,9 @@ type
     gotPass*, gotNick*, gotUser*: bool
     registered*: bool
     nickname*: string
+    username*: string
+    hostname*: string
+    realname*: string
     ipAddr*: string
 
 var

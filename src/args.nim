@@ -31,18 +31,17 @@ proc setNick(c: Client, args: seq[string]) =
 
 # setUser
 # Received the USER command
-proc setUser(c: Client, args: seq[string]) =
+proc setUser(c: Client, args: seq[string], message: string) =
   if c.registered:
     return
   
-  if args.len < 4:
+  if args.len < 3:
     errNeedMoreParams(c)
     return
-
-  if not startsWith(args[3], ":"):
-    discard sendClient(c, "Error: " & "Realname must be prefixed with ':'")
-    return
-
+  
+  c.username = args[0]
+  c.hostname = args[1]
+  c.realname = message
   c.gotUser = true
 
   echo(args)
@@ -55,8 +54,17 @@ proc joinChannel(c: Client, args: seq[string]) =
 # privMessage
 # Received the PRIVMSG command
 proc privMessage(c: Client, args: seq[string], message: string) =
-  # TODO: Need to finish this
-  echo fmt"got a message with text: {message}"
+  echo fmt"got message with text: {message}"
+  let sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
+  let recipient = getClientByNickname(args[0])
+
+  if recipient.isNil:
+    echo "didn't find recipient"
+    return
+
+  let msg = fmt":{sender} PRIVMSG {recipient.nickname} :{message}"
+  echo fmt"sending: {msg} to {recipient.nickname}"
+  discard sendClient(recipient, msg)
 
 # cmdHandler
 # Handles incoming commands from Client sockets.
@@ -65,7 +73,7 @@ proc cmdHandler*(c: Client, command: string, args: seq[string], message: string)
   case command:
   of "PASS": setPass(c, args)
   of "NICK": setNick(c, args)
-  of "USER": setUser(c, args)
+  of "USER": setUser(c, args, message)
 
   if c.gotPass and c.gotNick and c.gotUser and c.registered == false:
     c.registered = true
