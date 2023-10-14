@@ -1,9 +1,15 @@
-import asyncnet, asyncdispatch, strutils
+import asyncnet, asyncdispatch, strutils, net
 import ./data
 import ./args
+import ./helpers
 
 proc clientHandler(c: Client) {.async.} =
-  echo "Received connection from ", c.socket.getPeerAddr
+  let ipAddr = c.socket.getPeerAddr()[0]
+  c.ipAddr = ipAddr 
+  
+  removeClientByIp(ipAddr)
+  echo "Received connection from ", c.ipAddr
+
   s.clients.add(c)
   while true:
     let args = splitWhitespace(await c.socket.recvLine())

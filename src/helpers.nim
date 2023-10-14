@@ -27,7 +27,6 @@ proc sendLuser*(c: Client) {.async.} =
   for line in part:
     discard sendClient(c, line)
 
-
 # sendMotd
 # Sends the MOTD to a connected client
 proc sendMotd*(c: Client) {.async.} =
@@ -59,3 +58,23 @@ proc errAlreadyRegistered*(c: Client) =
 
 proc errNeedMoreParams*(c: Client) =
   discard clientErr(c, ERR_NEEDMOREPARAMS, "Need more parameters")
+
+proc removeClientbyIp*(ip: string) =
+  var toRem: Client
+
+  for a in s.clients:
+    if a.ipAddr == ip:
+      toRem = a
+  
+  if toRem != nil:
+    s.clients.delete(s.clients.find(toRem))
+
+proc removeClientbyNickname*(nick: string) =
+  var toRem: Client
+
+  for a in s.clients:
+    if a.nickname == nick:
+      toRem = a
+  
+  if toRem != nil:
+    s.clients.delete(s.clients.find(toRem))
