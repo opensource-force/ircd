@@ -66,6 +66,7 @@ proc cmdHandler*(c: Client, command: string, args: seq[string]) =
     
     echo(fmt"{c.nickname} Registered!")
     discard sendMotd(c)
+    discard sendLuser(c)
   
   # Handle post-registration commands
   case command:
