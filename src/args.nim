@@ -54,6 +54,8 @@ proc setUser(c: Client, args: seq[string], message: string) =
 proc joinedChannel(c: Client, ch: ChatChannel) =
   echo fmt"Joined {ch.name}"
   ch.clients.add(c)
+  let msg = fmt":{c.nickname} JOIN {ch.name}"
+  discard sendClient(c, msg)
   discard sendTopic(c, ch)
   discard sendNames(c, ch)
 
