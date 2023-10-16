@@ -49,10 +49,30 @@ proc setUser(c: Client, args: seq[string], message: string) =
 
   echo(fmt"{c.timestamp}: {args}")
 
+# joinedChannel
+# Channel is available, user is joining
+proc joinedChannel(c: Client, ch: ChatChannel) =
+  echo fmt"Joined {ch.name}"
+  ch.clients.add(c)
+  let msg = fmt":{c.nickname} JOIN {ch.name}"
+  discard sendClient(c, msg)
+  discard sendTopic(c, ch)
+  discard sendNames(c, ch)
+
 # joinChannel
 # Received the JOIN command
 proc joinChannel(c: Client, args: seq[string]) =
-  echo "JOIN not implemented yet."
+  let channelName = args[0]
+  echo fmt"User {c.nickname} joining channel {channelName}"
+  var channel: ChatChannel = getChannelByName(channelName)
+  if channel.isNil:
+    channel = createChannel(channelName)
+  
+  if channel.isNil:
+    echo "Couldn't create channel"
+    return
+
+  joinedChannel(c, channel)
 
 # sendMessageToChannel
 # Sends a message to a channel
