@@ -1,4 +1,4 @@
-import strformat
+import strformat, strutils
 import ./data
 import ./helpers
 
