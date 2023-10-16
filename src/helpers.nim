@@ -95,6 +95,14 @@ proc removeClientbyIp*(ip: string) =
   if toRem != nil:
     s.clients.delete(s.clients.find(toRem))
 
+# getClientbyNickname
+# Finds a connected client by nickname
+proc getClientbyNickname*(nick: string): Client =
+  for a in s.clients:
+    if a.nickname == nick:
+      return a
+  return nil
+
 proc removeClientbyNickname*(nick: string) =
   var toRem: Client
 
@@ -104,3 +112,20 @@ proc removeClientbyNickname*(nick: string) =
   
   if toRem != nil:
     s.clients.delete(s.clients.find(toRem))
+
+# getChannelByName
+# Finds a channel on the server
+proc getChannelByName*(name: string): ChatChannel =
+  for a in s.channels:
+    if a.name == name:
+      return a
+  return nil
+
+# isClientInChannel
+# Finds a client in a channel
+proc isClientInChannel*(channel: string, nickname: string): bool =
+  for a in s.channels:
+    for b in a.clients:
+      if b.nickname == nickname:
+        return true
+  return false
