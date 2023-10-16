@@ -24,6 +24,46 @@ proc checkLiveliness*(c: Client) {.async.} =
     # check every 10 sec
     await sleepAsync(10000)
 
+# sendTopic
+# Sends the TOPIC command output
+proc sendTopic*(c: Client, ch: ChatChannel) {.async.} =
+  echo "Send topic TODO"
+  # :irc.example.com 332 your_nickname #example :Welcome to the #example channel! Join us to discuss IRC.
+  let msg = fmt":{s.name} 332 {c.nickname} {ch.name} :{ch.topic}"
+  echo fmt"sent: {msg}"
+  discard sendClient(c, msg)
+
+# getChannelNamesList
+# Get a list of nicknames in a channel
+proc getChannelNamesList(ch: ChatChannel): string =
+  var output: string
+  for a in ch.clients:
+    output = output & a.nickname & " "
+  return output
+
+# createChannel
+# Creates a new channel on the server
+proc createChannel*(channelName: string): ChatChannel =
+  echo fmt"Creating new channel named {channelName}"
+  let channel = new(ChatChannel)
+  channel.name = channelName
+  channel.topic = "tets"
+  return channel
+
+# sendNames
+# Sends the NAMES command output
+proc sendNames*(c: Client, ch: ChatChannel) {.async.} =
+  echo "send channel names TODO"
+  let mStart = fmt":{s.name} 353 {c.nickname} = {ch.name} :{getChannelNamesList(ch)}"
+  let mEnd = fmt":{s.name} 366 {c.nickname} {ch.name} :End of /NAMES list."
+  discard sendClient(c, mStart)
+  echo fmt"sent: {mStart}"
+  discard sendClient(c, mEnd)
+  echo fmt"sent: {mEnd}"
+  # :irc.example.com 353 your_nickname = #example :@user1 +user2 user3
+  # :irc.example.com 366 your_nickname #example :End of /NAMES list.
+
+
 # sendLuser
 # Sends the LUSER command output to a connected client
 proc sendLuser*(c: Client) {.async.} =
@@ -33,15 +73,14 @@ proc sendLuser*(c: Client) {.async.} =
   let unknownConnectionCount = 0
   let channelCount = 0
   let serverCount = 0
-  let sName = getPrimaryIPAddr()
   let uName = c.nickname
 
   var part: array[5, string]
-  part[0] = fmt":{sName} 251 {uName} :There are {userCount} users and {invisibleCount} invisible on {serverCount} servers"
-  part[1] = fmt":{sName} 252 {uName} {onlineOperCount} :operator(s) online"
-  part[2] = fmt":{sName} 253 {uName} {unknownConnectionCount} :unknown connection(s)"
-  part[3] = fmt":{sName} 254 {uName} {channelCount} :channels formed"
-  part[4] = fmt":{sName} 255 {uName} :I have {userCount} clients and {serverCount} servers"
+  part[0] = fmt":{s.name} 251 {uName} :There are {userCount} users and {invisibleCount} invisible on {serverCount} servers"
+  part[1] = fmt":{s.name} 252 {uName} {onlineOperCount} :operator(s) online"
+  part[2] = fmt":{s.name} 253 {uName} {unknownConnectionCount} :unknown connection(s)"
+  part[3] = fmt":{s.name} 254 {uName} {channelCount} :channels formed"
+  part[4] = fmt":{s.name} 255 {uName} :I have {userCount} clients and {serverCount} servers"
   
   for line in part:
     discard sendClient(c, line)
@@ -52,15 +91,14 @@ proc sendMotd*(c: Client) {.async.} =
   let filename = "../data/motd.txt"
   let file = open(filename)
 
-  let sName = getPrimaryIPAddr()
   let uName = c.nickname
-  let mStart = fmt":{sName} 375 {uName} :- {sName} Message of the Day -"
-  let mEnd = fmt":{sName} 376 {uName} :End of /MOTD command."
+  let mStart = fmt":{s.name} 375 {uName} :- {s.name} Message of the Day -"
+  let mEnd = fmt":{s.name} 376 {uName} :End of /MOTD command."
 
   discard sendClient(c, mStart)
   if file.isNil:
     echo "Failed to load MOTD file."
-    let errResp = fmt":{sName} 422 {uName} :MOTD File is missing"
+    let errResp = fmt":{s.name} 422 {uName} :MOTD File is missing"
     discard sendClient(c, errResp)
   else:
     for line in lines(file):

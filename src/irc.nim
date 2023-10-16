@@ -1,4 +1,4 @@
-import asyncnet, asyncdispatch, strutils, net
+import asyncnet, asyncdispatch, strutils, net, strformat
 import ./data
 import ./args
 import ./helpers
@@ -24,6 +24,7 @@ proc clientHandler(c: Client) {.async.} =
     cmdHandler(c, args[0], args[1..^1], message)
 
 proc serve() {.async.} =
+  s.name = fmt"{getPrimaryIPAddr()}"
   s.socket = newAsyncSocket()
   s.socket.setSockOpt(OptReuseAddr, true)
   s.socket.bindAddr(Port(6667))

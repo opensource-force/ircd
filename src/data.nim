@@ -2,6 +2,7 @@ import asyncnet
 
 type
   Server* = object
+    name*: string
     socket*: AsyncSocket
     clients*: seq[Client]
     channels*: seq[ChatChannel]
