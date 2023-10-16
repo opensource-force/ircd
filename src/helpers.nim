@@ -1,9 +1,35 @@
-import asyncdispatch, asyncnet, strutils, strformat, net
+import asyncdispatch, asyncnet, strutils, strformat, net, times
 import ./data
 import ./responses
 
 proc sendClient*(c: Client, text: string) {.async.} =
   await c.socket.send(text & "\c\L")
+
+# getClientbyNickname
+# Finds a connected client by nickname
+proc getClientbyNickname*(nick: string): Client =
+  for a in s.clients:
+    if a.nickname == nick:
+      return a
+
+proc getEpochTime*(): int =
+  let time = split($epochTime(), ".")
+  
+  return parseInt(time[0])
+
+proc pingClient*(c: Client) =
+  discard c.sendClient("PING")
+
+  c.timestamp = getEpochTime()
+
+proc checkLiveliness*(c: Client) {.async.} =
+  while true:
+    # if now is 60 more than timestamp
+    if getEpochTime() - c.timestamp > 60:
+      c.pingClient()
+    
+    # check every 10 sec
+    await sleepAsync(10000)
 
 # sendLuser
 # Sends the LUSER command output to a connected client
@@ -68,13 +94,6 @@ proc removeClientbyIp*(ip: string) =
   
   if toRem != nil:
     s.clients.delete(s.clients.find(toRem))
-
-# getClientbyNickname
-# Finds a connected client by nickname
-proc getClientbyNickname*(nick: string): Client =
-  for a in s.clients:
-    if a.nickname == nick:
-      return a
 
 proc removeClientbyNickname*(nick: string) =
   var toRem: Client

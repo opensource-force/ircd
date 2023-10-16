@@ -1,4 +1,4 @@
-import strutils, strformat
+import strformat
 import ./data
 import ./helpers
 
@@ -14,8 +14,9 @@ proc setPass(c: Client, args: seq[string]) =
     return
 
   c.gotPass = true
-  
-  echo(args)
+  c.timestamp = getEpochTime()
+
+  echo(fmt"{c.timestamp}: {args}")
 
 # setNick
 # Received the NICK command
@@ -26,8 +27,9 @@ proc setNick(c: Client, args: seq[string]) =
   
   c.nickname = args[0]
   c.gotNick = true
+  c.timestamp = getEpochTime()
 
-  echo(args)
+  echo(fmt"{c.timestamp}: {args}")
 
 # setUser
 # Received the USER command
@@ -43,13 +45,16 @@ proc setUser(c: Client, args: seq[string], message: string) =
   c.hostname = args[1]
   c.realname = message
   c.gotUser = true
+  c.timestamp = getEpochTime()
 
-  echo(args)
+  echo(fmt"{c.timestamp}: {args}")
 
 # joinChannel
 # Received the JOIN command
 proc joinChannel(c: Client, args: seq[string]) =
   echo "JOIN not implemented yet."
+
+  c.timestamp = getEpochTime()
 
 # privMessage
 # Received the PRIVMSG command
@@ -65,6 +70,8 @@ proc privMessage(c: Client, args: seq[string], message: string) =
   let msg = fmt":{sender} PRIVMSG {recipient.nickname} :{message}"
   echo fmt"sending: {msg} to {recipient.nickname}"
   discard sendClient(recipient, msg)
+
+  c.timestamp = getEpochTime()
 
 # cmdHandler
 # Handles incoming commands from Client sockets.

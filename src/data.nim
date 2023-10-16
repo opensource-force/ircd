@@ -13,6 +13,7 @@ type
     hostname*: string
     realname*: string
     ipAddr*: string
+    timestamp*: int
 
 var
   s*: Server
