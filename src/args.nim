@@ -51,20 +51,42 @@ proc setUser(c: Client, args: seq[string], message: string) =
 proc joinChannel(c: Client, args: seq[string]) =
   echo "JOIN not implemented yet."
 
+# sendMessageToChannel
+# Sends a message to a channel
+proc sendMessageToChannel(c: Client, sender: string, target: string, message: string) =
+  let channel = getChannelByName(target)
+  if channel.isNil:
+    echo "TODO: didn't find channel"
+    return
+
+  let outMsg = fmt":{sender} PRIVMSG {target} :{message}"
+  echo outMsg
+
+# sendMessageToUser
+# Sends a mesage to a user
+proc sendMessageToUser(c: Client, sender: string, target: string, message: string) =
+  let recipient = getClientbyNickname(target)
+  
+  if recipient.isNil:
+    echo "TODO: didn't find recipient"
+    return
+
+  let outMsg = fmt":{sender} PRIVMSG {recipient.nickname} :{message}"
+  echo fmt"Sending: {outMsg} to {recipient.nickname}"
+  discard sendClient(recipient, outMsg)
+
+
 # privMessage
 # Received the PRIVMSG command
 proc privMessage(c: Client, args: seq[string], message: string) =
-  echo fmt"got message with text: {message}"
+  echo fmt"got message with text: {message} from {args[0]}"
   let sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
-  let recipient = getClientByNickname(args[0])
+  let target = args[0]
 
-  if recipient.isNil:
-    echo "didn't find recipient"
-    return
-
-  let msg = fmt":{sender} PRIVMSG {recipient.nickname} :{message}"
-  echo fmt"sending: {msg} to {recipient.nickname}"
-  discard sendClient(recipient, msg)
+  if target.startsWith('#'): 
+    sendMessageToChannel(c, sender, target, message)
+  else:
+    sendMessageToUser(c, sender, target, message)
 
 # cmdHandler
 # Handles incoming commands from Client sockets.
