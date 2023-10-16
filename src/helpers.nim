@@ -5,13 +5,6 @@ import ./responses
 proc sendClient*(c: Client, text: string) {.async.} =
   await c.socket.send(text & "\c\L")
 
-# getClientbyNickname
-# Finds a connected client by nickname
-proc getClientbyNickname*(nick: string): Client =
-  for a in s.clients:
-    if a.nickname == nick:
-      return a
-
 proc getEpochTime*(): int =
   let time = split($epochTime(), ".")
   

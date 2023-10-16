@@ -14,7 +14,7 @@ proc clientHandler(c: Client) {.async.} =
     let args = splitWhitespace(parts[0])
     var message: string = ""
 
-    await c.checkLiveliness()
+    #await c.checkLiveliness()
 
     if args.len == 0: return
 
