@@ -1,4 +1,4 @@
-import strutils, strformat
+import strformat
 import ./data
 import ./helpers
 
@@ -14,8 +14,9 @@ proc setPass(c: Client, args: seq[string]) =
     return
 
   c.gotPass = true
-  
-  echo(args)
+  c.timestamp = getEpochTime()
+
+  echo(fmt"{c.timestamp}: {args}")
 
 # setNick
 # Received the NICK command
@@ -26,8 +27,9 @@ proc setNick(c: Client, args: seq[string]) =
   
   c.nickname = args[0]
   c.gotNick = true
+  c.timestamp = getEpochTime()
 
-  echo(args)
+  echo(fmt"{c.timestamp}: {args}")
 
 # setUser
 # Received the USER command
@@ -43,8 +45,9 @@ proc setUser(c: Client, args: seq[string], message: string) =
   c.hostname = args[1]
   c.realname = message
   c.gotUser = true
+  c.timestamp = getEpochTime()
 
-  echo(args)
+  echo(fmt"{c.timestamp}: {args}")
 
 # joinChannel
 # Received the JOIN command
@@ -75,7 +78,6 @@ proc sendMessageToUser(c: Client, sender: string, target: string, message: strin
   echo fmt"Sending: {outMsg} to {recipient.nickname}"
   discard sendClient(recipient, outMsg)
 
-
 # privMessage
 # Received the PRIVMSG command
 proc privMessage(c: Client, args: seq[string], message: string) =
@@ -87,6 +89,8 @@ proc privMessage(c: Client, args: seq[string], message: string) =
     sendMessageToChannel(c, sender, target, message)
   else:
     sendMessageToUser(c, sender, target, message)
+
+  c.timestamp = getEpochTime()
 
 # cmdHandler
 # Handles incoming commands from Client sockets.

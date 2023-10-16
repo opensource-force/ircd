@@ -14,6 +14,8 @@ proc clientHandler(c: Client) {.async.} =
     let args = splitWhitespace(parts[0])
     var message: string = ""
 
+    await c.checkLiveliness()
+
     if args.len == 0: return
 
     if len(parts) > 1:
@@ -31,7 +33,11 @@ proc serve() {.async.} =
   while true:
     var
       (ip, client) = await s.socket.acceptAddr()
-      c = Client(ipAddr: ip, socket: client)
+      c = Client(
+        ipAddr: ip,
+        socket: client,
+        timestamp: getEpochTime()
+      )
     
     asyncCheck clientHandler(c)
 

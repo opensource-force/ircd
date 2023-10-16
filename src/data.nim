@@ -16,6 +16,7 @@ type
     nickname*: string
     username*, hostname*, realname*: string
     ipAddr*: string
+    timestamp*: int
 
 var
   s*: Server
