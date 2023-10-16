@@ -55,7 +55,8 @@ proc joinedChannel(c: Client, ch: ChatChannel) =
   echo fmt"Joined {ch.name}"
   ch.clients.add(c)
   let msg = fmt":{c.nickname} JOIN {ch.name}"
-  discard sendClient(c, msg)
+  for a in ch.clients:
+    discard sendClient(a, msg)
   discard sendTopic(c, ch)
   discard sendNames(c, ch)
 
@@ -83,7 +84,10 @@ proc sendMessageToChannel(c: Client, sender: string, target: string, message: st
     return
 
   let outMsg = fmt":{sender} PRIVMSG {target} :{message}"
-  echo outMsg
+  for a in channel.clients:
+    if a.nickname != sender:
+      # TODO: sender is the full nick@hostname. need to make a proc to build this here and the other command
+      discard sendClient(a, outMsg)
 
 # sendMessageToUser
 # Sends a mesage to a user

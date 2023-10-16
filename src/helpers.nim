@@ -47,22 +47,18 @@ proc createChannel*(channelName: string): ChatChannel =
   echo fmt"Creating new channel named {channelName}"
   let channel = new(ChatChannel)
   channel.name = channelName
-  channel.topic = "tets"
+
+  # Add the channel to the list
+  s.channels.add(channel)
   return channel
 
 # sendNames
 # Sends the NAMES command output
 proc sendNames*(c: Client, ch: ChatChannel) {.async.} =
-  echo "send channel names TODO"
   let mStart = fmt":{s.name} 353 {c.nickname} = {ch.name} :{getChannelNamesList(ch)}"
   let mEnd = fmt":{s.name} 366 {c.nickname} {ch.name} :End of /NAMES list."
   discard sendClient(c, mStart)
-  echo fmt"sent: {mStart}"
   discard sendClient(c, mEnd)
-  echo fmt"sent: {mEnd}"
-  # :irc.example.com 353 your_nickname = #example :@user1 +user2 user3
-  # :irc.example.com 366 your_nickname #example :End of /NAMES list.
-
 
 # sendLuser
 # Sends the LUSER command output to a connected client
