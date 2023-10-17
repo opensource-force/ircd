@@ -1,4 +1,4 @@
-import asyncdispatch, asyncnet, strutils, strformat, net, times
+import asyncdispatch, asyncnet, strutils, strformat, times
 import ./data
 import ./responses
 
@@ -10,16 +10,22 @@ proc getEpochTime*(): int =
   
   return parseInt(time[0])
 
-proc pingClient*(c: Client) =
-  discard c.sendClient("PING")
+proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
 
-  c.timestamp = getEpochTime()
+proc pingClient*(c: Client) =
+  discard c.sendClient("PING " & c.nickname)
+
+  # can't figure out why without this causes SIGSEV: illegal access error if taken out
+  c.updateTimestamp()
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
   while true:
     if getEpochTime() - c.timestamp > interval:
       c.pingClient()
-    
+    elif getEpochTime() - c.timestamp > 100:
+      echo("Connection closed")
+      c.socket.close()
+
     await sleepAsync(0)
 
 # sendTopic

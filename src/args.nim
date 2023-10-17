@@ -16,8 +16,6 @@ proc setPass(c: Client, args: seq[string]) =
   c.gotPass = true
   c.timestamp = getEpochTime()
 
-  echo(fmt"{c.timestamp}: {args}")
-
 # setNick
 # Received the NICK command
 proc setNick(c: Client, args: seq[string]) =
@@ -27,9 +25,7 @@ proc setNick(c: Client, args: seq[string]) =
   
   c.nickname = args[0]
   c.gotNick = true
-  c.timestamp = getEpochTime()
-
-  echo(fmt"{c.timestamp}: {args}")
+  c.updateTimestamp()
 
 # setUser
 # Received the USER command
@@ -45,9 +41,7 @@ proc setUser(c: Client, args: seq[string], message: string) =
   c.hostname = args[1]
   c.realname = message
   c.gotUser = true
-  c.timestamp = getEpochTime()
-
-  echo(fmt"{c.timestamp}: {args}")
+  c.updateTimestamp()
 
 # joinedChannel
 # Channel is available, user is joining
@@ -114,7 +108,7 @@ proc privMessage(c: Client, args: seq[string], message: string) =
   else:
     sendMessageToUser(c, sender, target, message)
 
-  c.timestamp = getEpochTime()
+  c.updateTimestamp()
 
 # cmdHandler
 # Handles incoming commands from Client sockets.
@@ -134,5 +128,6 @@ proc cmdHandler*(c: Client, command: string, args: seq[string], message: string)
   
   # Handle post-registration commands
   case command:
+  of "PONG": c.updateTimestamp()
   of "JOIN": joinChannel(c, args)
   of "PRIVMSG": privMessage(c, args, message)

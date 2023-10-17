@@ -20,6 +20,8 @@ proc clientHandler(c: Client) {.async.} =
 
     if len(args) == 0: return
 
+    echo(fmt"{c.timestamp}: {args}")
+
     if len(parts) > 1:
       message = parts[1]
     
