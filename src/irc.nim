@@ -9,19 +9,21 @@ proc clientHandler(c: Client) {.async.} =
 
   s.clients.add(c)
   while true:
-    let data = await c.socket.recvLine()
-    let parts = data.split(':')
-    let args = splitWhitespace(parts[0])
+    let
+      line = await c.socket.recvLine()
+      parts = line.split(':')
+      args = splitWhitespace(parts[0])
+    
     var message: string = ""
 
-    asyncCheck c.checkLiveliness()
+    asyncCheck(c.checkLiveliness(60))
 
-    if args.len == 0: return
+    if len(args) == 0: return
 
     if len(parts) > 1:
       message = parts[1]
     
-    cmdHandler(c, args[0], args[1..^1], message)
+    c.cmdHandler(args[0], args[1..^1], message)
 
 proc serve() {.async.} =
   s.name = fmt"{getPrimaryIPAddr()}"
@@ -42,5 +44,5 @@ proc serve() {.async.} =
     
     asyncCheck clientHandler(c)
 
-asyncCheck serve()
+asyncCheck(serve())
 runForever()

@@ -15,14 +15,12 @@ proc pingClient*(c: Client) =
 
   c.timestamp = getEpochTime()
 
-proc checkLiveliness*(c: Client) {.async.} =
+proc checkLiveliness*(c: Client, interval: int) {.async.} =
   while true:
-    # if now is 60 more than timestamp
-    if getEpochTime() - c.timestamp > 60:
+    if getEpochTime() - c.timestamp > interval:
       c.pingClient()
     
-    # check every 10 sec
-    await sleepAsync(10000)
+    await sleepAsync(0)
 
 # sendTopic
 # Sends the TOPIC command output
