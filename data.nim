@@ -5,9 +5,6 @@ type
     socket*: AsyncSocket
     clients*: seq[Client]
     channels*: seq[ChatChannel]
-  ChatChannel* = ref object
-    name*: string
-    clients*: seq[Client]
   Client* = ref object
     socket*: AsyncSocket
     password*: string
@@ -16,5 +13,8 @@ type
     username*, hostname*, servername*, realname*: string
     gotPass*, gotNick*, gotUser*: bool
     registered*: bool
+  ChatChannel* = ref object
+    name*: string
+    clients*: seq[Client]
 
 var s*: Server

@@ -21,8 +21,8 @@ proc sendNick*(c: Client, target: string, msg: string) =
     target = getClientByNickname(target)
     message = fmt":{sender} PRIVMSG {target.nickname} :{msg}"
 
-  echo(fmt"Sending: {message} to {target.nickname}")
-  discard send(target, msg)
+  echo(fmt"Sending: '{msg}' to {target.nickname}")
+  discard send(target, message)
 
 proc createChannel*(c: Client, name: string): ChatChannel =
   for channel in s.channels:
@@ -49,4 +49,4 @@ proc sendChannel*(c: Client, target: string, msg: string) =
     if client.nickname != c.nickname:
       discard client.send(message)
 
-  echo(fmt"Sending: {message} to {target.name}")
+  echo(fmt"Sending: '{msg}' to {target.name}")
