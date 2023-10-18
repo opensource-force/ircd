@@ -1,25 +1,13 @@
-import asyncnet, asyncdispatch
+import asyncnet, asyncdispatch, nativesockets
 import strutils, strformat
+import ./data
+import ./helpers
 
-type
-  Server = object
-    socket: AsyncSocket
-    clients: seq[Client]
-  Client = ref object
-    socket: AsyncSocket
-    password: string
-    nickname: string
-    hopcount: int
-    username, hostname, servername, realname: string
-    gotPass, gotNick, gotUser: bool
-    registered: bool
+const
+  port = Port(6667)
+  ipAddr = "192.168.1.16"
 
-var s: Server
-
-proc send(c: Client, msg: string) {.async.} =
-  await c.socket.send(msg & "\c\L")
-
-proc setPass(c: Client, params: seq[string]) =
+proc passMsg(c: Client, params: seq[string]) =
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -27,7 +15,7 @@ proc setPass(c: Client, params: seq[string]) =
   c.password = params[0]
   c.gotPass = true
 
-proc setNick(c: Client, params: seq[string]) =
+proc nickMsg(c: Client, params: seq[string]) =
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -39,7 +27,7 @@ proc setNick(c: Client, params: seq[string]) =
   
   c.gotNick = true
 
-proc setUser(c: Client, params: seq[string], msg: string) =
+proc userMsg(c: Client, params: seq[string], msg: string) =
   if len(params) < 3:
     discard c.send("Not enough params")
     return
@@ -53,31 +41,26 @@ proc setUser(c: Client, params: seq[string], msg: string) =
   
   c.gotUser = true
 
-proc getClientbyNickname(nick: string): Client =
-  for a in s.clients:
-    if a.nickname == nick:
-      return a
-
-proc msgUser(c: Client, sender: string, target: string, msg: string) =
-  let
-    recipient = getClientbyNickname(target)
-    message = fmt":{sender} PRIVMSG {recipient.nickname} :{msg}"
-
-  echo fmt"Sending: {message} to {recipient.nickname}"
-  discard send(recipient, message)
+proc joinMsg(c: Client, params: seq[string]) =
+  let name = params[0]
+  var channel = c.createChannel(name)
+  c.joinChannel(channel, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
-  let
-    sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
-    target = params[0]
+  let target = params[0]
 
-  c.msgUser(sender, target, msg)
+  if target.startsWith("#"):
+    c.sendChannel(target, msg)
+    return
+
+  c.sendNick(target, msg)
 
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
-  of "PASS": c.setPass(params)
-  of "NICK": c.setNick(params)
-  of "USER": c.setUser(params, msg)
+  of "PASS": c.passMsg(params)
+  of "NICK": c.nickMsg(params)
+  of "USER": c.userMsg(params, msg)
+  of "JOIN": c.joinMsg(params)
   of "PRIVMSG": c.privMsg(params, msg)
 
   echo(fmt"{cmd} {params} :{msg}")
@@ -111,11 +94,14 @@ proc clientHandler(c: Client) {.async.} =
 proc serve() {.async.} =
   s.socket = newAsyncSocket()
   s.socket.setSockOpt(OptReuseAddr, true)
-  s.socket.bindAddr(Port(6667))
+  s.socket.bindAddr(port)
   s.socket.listen()
+  echo(fmt"Listening at {ipAddr}:{port}")
   
   while true:
     let c = Client(socket: await s.socket.accept())
+    echo("Client connection recieved")
+    
     s.clients.add(c)
     asyncCheck clientHandler(c)
 
