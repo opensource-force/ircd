@@ -8,7 +8,6 @@ const
   ipAddr = "192.168.1.16"
 
 proc passMsg(c: Client, params: seq[string]) =
-  c.updateTimestamp()
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -17,7 +16,6 @@ proc passMsg(c: Client, params: seq[string]) =
   c.gotPass = true
 
 proc nickMsg(c: Client, params: seq[string]) =
-  c.updateTimestamp()
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -30,7 +28,6 @@ proc nickMsg(c: Client, params: seq[string]) =
   c.gotNick = true
 
 proc userMsg(c: Client, params: seq[string], msg: string) =
-  c.updateTimestamp()
   if len(params) < 3:
     discard c.send("Not enough params")
     return
@@ -45,13 +42,11 @@ proc userMsg(c: Client, params: seq[string], msg: string) =
   c.gotUser = true
 
 proc joinMsg(c: Client, params: seq[string]) =
-  c.updateTimestamp()
   let name = params[0]
   var channel = c.createChannel(name)
   c.joinChannel(channel, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
-  c.updateTimestamp()
   let target = params[0]
 
   if target.startsWith("#"):
@@ -71,6 +66,7 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
 
   echo(fmt"{cmd} {params} :{msg}")
 
+  c.updateTimestamp()
   if not c.registered and c.gotPass and c.gotNick and c.gotUser:
     c.registered = true
     echo(fmt"{c.nickname} registered")
@@ -91,11 +87,14 @@ proc argHandler(c: Client, line: string) =
   discard c.cmdHandler(cmd, params, msg)
 
 proc clientHandler(c: Client) {.async.} =
-  while true:
+  s.clients.add(c)
+  echo("Client connection recieved")
+
+  asyncCheck c.checkLiveliness(60)
+
+  while not c.socket.isClosed():
     let line = await c.socket.recvLine()
     if len(line) == 0: return
-
-    asyncCheck c.checkLiveliness(10)
 
     c.argHandler(line)
 
@@ -112,9 +111,7 @@ proc serve() {.async.} =
       socket: await s.socket.accept(),
       timestamp: getEpochTime()
     )
-    echo("Client connection recieved")
     
-    s.clients.add(c)
     asyncCheck c.clientHandler()
 
 asyncCheck serve()

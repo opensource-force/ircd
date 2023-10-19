@@ -21,7 +21,6 @@ proc sendNick*(c: Client, target: string, msg: string) =
     target = getClientByNickname(target)
     message = fmt":{sender} PRIVMSG {target.nickname} :{msg}"
 
-  echo(fmt"Sending: '{msg}' to {target.nickname}")
   discard send(target, message)
 
 proc createChannel*(c: Client, name: string): ChatChannel =
@@ -49,8 +48,6 @@ proc sendChannel*(c: Client, target: string, msg: string) =
     if client.nickname != c.nickname:
       discard client.send(message)
 
-  echo(fmt"Sending: '{msg}' to {target.name}")
-
 proc getEpochTime*(): int =
   let time = split($epochTime(), ".")
   
@@ -58,11 +55,16 @@ proc getEpochTime*(): int =
 
 proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
 
-proc pingClient*(c: Client) = discard c.send("PING " & c.nickname)
+proc pingClient*(c: Client) =
+  discard c.send("PING " & c.nickname)
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
   while true:
     if getEpochTime() - c.timestamp >= interval:
       c.pingClient()
-      
-    await sleepAsync(0)
+
+    if getEpochTime() - c.timestamp >= interval * 2:
+      echo("Closed connection")
+      c.socket.close()
+    
+    await sleepAsync(interval * 1000)
