@@ -1,5 +1,5 @@
 import asyncnet, asyncdispatch
-import strutils, strformat
+import strutils, strformat, times
 import ./data
 
 proc send*(c: Client, msg: string) {.async.} =
@@ -50,3 +50,19 @@ proc sendChannel*(c: Client, target: string, msg: string) =
       discard client.send(message)
 
   echo(fmt"Sending: '{msg}' to {target.name}")
+
+proc getEpochTime*(): int =
+  let time = split($epochTime(), ".")
+  
+  return parseInt(time[0])
+
+proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
+
+proc pingClient*(c: Client) = discard c.send("PING " & c.nickname)
+
+proc checkLiveliness*(c: Client, interval: int) {.async.} =
+  while true:
+    if getEpochTime() - c.timestamp >= interval:
+      c.pingClient()
+      
+    await sleepAsync(0)

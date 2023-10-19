@@ -8,6 +8,7 @@ const
   ipAddr = "192.168.1.16"
 
 proc passMsg(c: Client, params: seq[string]) =
+  c.updateTimestamp()
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -16,6 +17,7 @@ proc passMsg(c: Client, params: seq[string]) =
   c.gotPass = true
 
 proc nickMsg(c: Client, params: seq[string]) =
+  c.updateTimestamp()
   if len(params) == 0:
     discard c.send("Not enough params")
     return
@@ -28,6 +30,7 @@ proc nickMsg(c: Client, params: seq[string]) =
   c.gotNick = true
 
 proc userMsg(c: Client, params: seq[string], msg: string) =
+  c.updateTimestamp()
   if len(params) < 3:
     discard c.send("Not enough params")
     return
@@ -42,11 +45,13 @@ proc userMsg(c: Client, params: seq[string], msg: string) =
   c.gotUser = true
 
 proc joinMsg(c: Client, params: seq[string]) =
+  c.updateTimestamp()
   let name = params[0]
   var channel = c.createChannel(name)
   c.joinChannel(channel, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
+  c.updateTimestamp()
   let target = params[0]
 
   if target.startsWith("#"):
@@ -62,6 +67,7 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
   of "USER": c.userMsg(params, msg)
   of "JOIN": c.joinMsg(params)
   of "PRIVMSG": c.privMsg(params, msg)
+  of "PONG": c.updateTimestamp()
 
   echo(fmt"{cmd} {params} :{msg}")
 
@@ -89,6 +95,8 @@ proc clientHandler(c: Client) {.async.} =
     let line = await c.socket.recvLine()
     if len(line) == 0: return
 
+    asyncCheck c.checkLiveliness(10)
+
     c.argHandler(line)
 
 proc serve() {.async.} =
@@ -97,13 +105,17 @@ proc serve() {.async.} =
   s.socket.bindAddr(port)
   s.socket.listen()
   echo(fmt"Listening at {ipAddr}:{port}")
-  
+
   while true:
-    let c = Client(socket: await s.socket.accept())
+    let c = Client(
+      ipAddr: ipAddr,
+      socket: await s.socket.accept(),
+      timestamp: getEpochTime()
+    )
     echo("Client connection recieved")
     
     s.clients.add(c)
-    asyncCheck clientHandler(c)
+    asyncCheck c.clientHandler()
 
 asyncCheck serve()
 runForever()
