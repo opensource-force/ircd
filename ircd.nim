@@ -55,6 +55,15 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
 
   c.sendNick(target, msg)
 
+proc clientRegistrar(c: Client) =
+  if not c.registered and c.gotPass and c.gotNick and c.gotUser:
+    c.registered = true
+    echo(fmt"{c.nickname} registered")
+    discard c.send("Registered")
+
+    c.sendMotd()
+    c.sendLuser()
+
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
   of "PASS": c.passMsg(params)
@@ -67,13 +76,7 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
   echo(fmt"{cmd} {params} :{msg}")
 
   c.updateTimestamp()
-  if not c.registered and c.gotPass and c.gotNick and c.gotUser:
-    c.registered = true
-    echo(fmt"{c.nickname} registered")
-    discard c.send("Registered")
-
-    c.sendMotd()
-    c.sendLuser()
+  c.clientRegistrar()
 
 proc argHandler(c: Client, line: string) =
   let
@@ -91,7 +94,7 @@ proc argHandler(c: Client, line: string) =
 
 proc clientHandler(c: Client) {.async.} =
   s.clients.add(c)
-  echo("Client connection recieved")
+  echo("Connection recieved")
 
   asyncCheck c.checkLiveliness(60)
 
