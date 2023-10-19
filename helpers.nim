@@ -66,5 +66,34 @@ proc checkLiveliness*(c: Client, interval: int) {.async.} =
     if getEpochTime() - c.timestamp >= interval * 2:
       echo("Closed connection")
       c.socket.close()
+      return
     
     await sleepAsync(interval * 1000)
+
+proc sendMotd*(c: Client) =
+  let motd = """
+    MOTD: OSFIRCd
+    |-----------------------|
+    |      Welcome!         |
+    |-----------------------|
+  """
+
+  discard c.send(motd)
+
+proc sendLuser*(c: Client) =
+  let
+    userCount = 0
+    invisibleCount = 0
+    onlineOperCount = 0
+    unknownConnectionCount = 0
+    channelCount = 0
+    serverCount = 0
+    luser = @[
+      fmt":{c.servername} 251 {c.nickname} :There are {userCount} users and {invisibleCount} invisible on {serverCount} servers",
+      fmt":{c.servername} 252 {c.nickname} {onlineOperCount} :operator(s) online",
+      fmt":{c.servername} 253 {c.nickname} {unknownConnectionCount} :unknown connection(s)",
+      fmt":{c.servername} 254 {c.nickname} {channelCount} :channels formed",
+      fmt":{c.servername} 255 {c.nickname} :I have {userCount} clients and {serverCount} servers"
+    ]
+  
+  discard c.send(join(luser, "\n"))

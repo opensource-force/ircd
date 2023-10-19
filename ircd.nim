@@ -72,6 +72,9 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
     echo(fmt"{c.nickname} registered")
     discard c.send("Registered")
 
+    c.sendMotd()
+    c.sendLuser()
+
 proc argHandler(c: Client, line: string) =
   let
     parts = split(line, ":")
