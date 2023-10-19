@@ -96,10 +96,13 @@ proc clientHandler(c: Client) {.async.} =
   asyncCheck c.checkLiveliness(60)
 
   while not c.socket.isClosed():
-    let line = await c.socket.recvLine()
-    if len(line) == 0: return
+    try:
+      let line = await c.socket.recvLine()
+      if len(line) == 0: return
 
-    c.argHandler(line)
+      c.argHandler(line)
+    except:
+      continue
 
 proc serve() {.async.} =
   s.socket = newAsyncSocket()
