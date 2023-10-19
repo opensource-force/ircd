@@ -15,6 +15,15 @@ proc getChannelByName*(name: string): ChatChannel =
     if a.name == name:
       return a
 
+proc removeClient*(c: Client) =
+  echo("Connection closed")
+  c.socket.close()
+  
+  for i in 0..<s.clients.len:
+    if s.clients[i] == c:
+      s.clients.del(i)
+      break
+
 proc sendNick*(c: Client, target: string, msg: string) =
   let
     sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
@@ -60,34 +69,32 @@ proc pingClient*(c: Client) =
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
   while true:
-    if getEpochTime() - c.timestamp >= interval:
-      c.pingClient()
-
     if getEpochTime() - c.timestamp >= interval * 2:
-      echo("Closed connection")
-      c.socket.close()
+      c.removeClient()
       return
-    
+    elif getEpochTime() - c.timestamp >= interval:
+      c.pingClient()
+      
     await sleepAsync(interval * 1000)
 
 proc sendMotd*(c: Client) =
   let motd = """
-    MOTD: OSFIRCd
-    |-----------------------|
-    |      Welcome!         |
-    |-----------------------|
+    MOTD: Welcome to the server!
+    x-----------------------x
+    x       OSFIRCd         x
+    x-----------------------x
   """
 
   discard c.send(motd)
 
 proc sendLuser*(c: Client) =
   let
-    userCount = 0
+    userCount = s.clients.len
     invisibleCount = 0
     onlineOperCount = 0
     unknownConnectionCount = 0
-    channelCount = 0
-    serverCount = 0
+    channelCount = s.channels.len
+    serverCount = 1
     luser = @[
       fmt":{c.servername} 251 {c.nickname} :There are {userCount} users and {invisibleCount} invisible on {serverCount} servers",
       fmt":{c.servername} 252 {c.nickname} {onlineOperCount} :operator(s) online",
