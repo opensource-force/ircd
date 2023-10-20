@@ -1,6 +1,16 @@
-import asyncnet, asyncdispatch
-import strutils, strformat, times
-import ./data
+import
+  asyncdispatch,
+  strutils, strformat, times,
+  ./data
+
+template hasArgs*(c: Client, args: seq[string], minArgs: int, code: untyped) =
+  if len(args) < minArgs:
+    discard c.send("Not enough arguments")
+  else:
+    code
+    c.updateTimestamp()
+
+    echo(cmd, args)
 
 proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\c\L")
@@ -44,30 +54,38 @@ proc createChannel*(c: Client, name: string): ChatChannel =
 
 proc sendTopic(c: Client, ch: ChatChannel) =
   var topicMsg: string
+
   if ch.topic == "":
     topicMsg = ":No topic is set"
   else:
     topicMsg = fmt":{ch.topic}"
+
   let response = fmt":{c.servername} 332 {ch.name} :{topicMsg}"
+
   discard c.send(response)
 
 proc sendNames(c: Client, ch: ChatChannel) =
   var names: seq[string]
+
   for a in ch.clients:
     names.add(a.nickname)
-  let namesList = names.join(" ")
-  let msg = [
-    fmt":{c.servername} 353 {c.nickname} = {ch.name} :{namesList}",
-    fmt":{c.servername} 366 {ch.name} :End of /NAMES list"
-  ]
-  for m in msg:
-    discard c.send(m)
+
+  let
+    namesList = names.join(" ")
+    msg = [
+      fmt":{c.servername} 353 {c.nickname} = {ch.name} :{namesList}",
+      fmt":{c.servername} 366 {ch.name} :End of /NAMES list"
+    ]
+
+  discard c.send(join(msg, "\n"))
 
 proc joinChannel*(c: Client, ch: ChatChannel, name: string) =
   if ch in s.channels:
     ch.clients.add(c)
+
     for a in ch.clients:
       discard a.send(fmt":{c.nickname} JOIN {name}")
+
     c.sendTopic(ch)
     c.sendNames(ch)
 
