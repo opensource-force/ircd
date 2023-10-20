@@ -1,25 +1,16 @@
-import asyncnet, asyncdispatch, nativesockets
-import strutils, strformat
-import ./data
-import ./helpers
+import
+  asyncdispatch, nativesockets,
+  strutils, strformat,
+  ./data, ./helpers
 
-const
-  port = Port(6667)
-  ipAddr = "192.168.1.16"
+const port = Port(6667)
 
 proc passMsg(c: Client, params: seq[string]) =
-  if len(params) == 0:
-    discard c.send("Not enough params")
-    return
-
   c.password = params[0]
+  
   c.gotPass = true
 
 proc nickMsg(c: Client, params: seq[string]) =
-  if len(params) == 0:
-    discard c.send("Not enough params")
-    return
-
   c.nickname = params[0]
   
   if len(params) > 1:
@@ -28,22 +19,20 @@ proc nickMsg(c: Client, params: seq[string]) =
   c.gotNick = true
 
 proc userMsg(c: Client, params: seq[string], msg: string) =
-  if len(params) < 3:
-    discard c.send("Not enough params")
-    return
-
   c.username = params[0]
   c.hostname = params[1]
   c.servername = params[2]
   
   if len(params) > 3:
-    c.realname = join(params[3..^1], " ")
+    c.realname = msg
   
   c.gotUser = true
 
 proc joinMsg(c: Client, params: seq[string]) =
-  let name = params[0]
-  var channel = c.createChannel(name)
+  let
+    name = params[0]
+    channel = c.createChannel(name)
+    
   c.joinChannel(channel, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
@@ -66,16 +55,18 @@ proc clientRegistrar(c: Client) =
 
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
-  of "PASS": c.passMsg(params)
-  of "NICK": c.nickMsg(params)
-  of "USER": c.userMsg(params, msg)
-  of "JOIN": c.joinMsg(params)
-  of "PRIVMSG": c.privMsg(params, msg)
+  of "PASS":
+    c.hasArgs(params, 1): c.passMsg(params)
+  of "NICK":
+    c.hasArgs(params, 1): c.nickMsg(params)
+  of "USER":
+    c.hasArgs(params, 3): c.userMsg(params, msg)
+  of "JOIN":
+    c.hasArgs(params, 1): c.joinMsg(params)
+  of "PRIVMSG":
+    c.hasArgs(params, 2): c.privMsg(params, msg)
   of "PONG": c.updateTimestamp()
 
-  echo(fmt"{cmd} {params} :{msg}")
-
-  c.updateTimestamp()
   c.clientRegistrar()
 
 proc argHandler(c: Client, line: string) =
@@ -112,14 +103,16 @@ proc serve() {.async.} =
   s.socket.setSockOpt(OptReuseAddr, true)
   s.socket.bindAddr(port)
   s.socket.listen()
-  echo(fmt"Listening at {ipAddr}:{port}")
+  echo(fmt"Listening on {port}")
 
   while true:
-    let c = Client(
-      ipAddr: ipAddr,
-      socket: await s.socket.accept(),
-      timestamp: getEpochTime()
-    )
+    let
+      (ipAddr, socket) = await s.socket.acceptAddr()
+      c = Client(
+        ipAddr: ipAddr,
+        socket: socket,
+        timestamp: getEpochTime()
+      )
     
     asyncCheck c.clientHandler()
 

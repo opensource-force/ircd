@@ -1,4 +1,5 @@
 import asyncnet
+export asyncnet
 
 type
   Server* = object
