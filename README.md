@@ -9,5 +9,6 @@ docker compose down
 - Connect to server
 - MOTD
 - LUSER
+- JOIN
 - PRIVMSG to users
-- PRIVMSG to channels (if they existed)
+- PRIVMSG to channels
