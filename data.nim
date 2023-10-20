@@ -17,6 +17,7 @@ type
     timestamp*: int
   ChatChannel* = ref object
     name*: string
+    topic*: string
     clients*: seq[Client]
 
 var s*: Server

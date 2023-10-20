@@ -33,13 +33,37 @@ proc createChannel*(c: Client, name: string): ChatChannel =
   
   return newChannel
 
+proc sendTopic(c: Client, ch: ChatChannel) =
+  var topicMsg: string
+  if ch.topic == "":
+    topicMsg = ":No topic is set"
+  else:
+    topicMsg = fmt":{ch.topic}"
+  let response = fmt":{c.servername} 332 {ch.name} :{topicMsg}"
+  discard c.send(response)
+
+proc sendNames(c: Client, ch: ChatChannel) =
+  var names: seq[string]
+  for a in ch.clients:
+    names.add(a.nickname)
+  let namesList = names.join(" ")
+  let msg = [
+    fmt":{c.servername} 353 {c.nickname} = {ch.name} :{namesList}",
+    fmt":{c.servername} 366 {ch.name} :End of /NAMES list"
+  ]
+  for m in msg:
+    discard c.send(m)
+
 proc joinChannel*(c: Client, ch: ChatChannel, name: string) =
   if ch in s.channels:
     ch.clients.add(c)
-    discard c.send(fmt":{c.nickname} JOIN {name}")
+    for a in ch.clients:
+      discard a.send(fmt":{c.nickname} JOIN {name}")
+    c.sendTopic(ch)
+    c.sendNames(ch)
 
 proc sendChannel*(c: Client, target: string, msg: string) =
-  let
+  let 
     sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
     target = getChannelByName(target)
     message = fmt":{sender} PRIVMSG {target.name} :{msg}"
