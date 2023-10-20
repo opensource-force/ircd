@@ -3,14 +3,14 @@ import
   strutils, strformat, times,
   ./data
 
-template hasArgs*(c: Client, args: seq[string], minArgs: int, code: untyped) =
-  if len(args) < minArgs:
+template hasArgs*(c: Client, minArgs: int, code: untyped) =
+  if len(params) < minArgs:
     discard c.send("Not enough arguments")
   else:
     code
     c.updateTimestamp()
 
-    echo(cmd, args)
+    echo(cmd, params)
 
 proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\c\L")
@@ -37,10 +37,10 @@ proc removeClient*(c: Client) =
 proc sendNick*(c: Client, target: string, msg: string) =
   let
     sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
-    target = getClientByNickname(target)
-    message = fmt":{sender} PRIVMSG {target.nickname} :{msg}"
+    client = getClientByNickname(target)
+    message = fmt":{sender} PRIVMSG {client.nickname} :{msg}"
 
-  discard send(target, message)
+  discard client.send(message)
 
 proc createChannel*(c: Client, name: string): ChatChannel =
   for channel in s.channels:
@@ -53,25 +53,25 @@ proc createChannel*(c: Client, name: string): ChatChannel =
   return newChannel
 
 proc sendTopic(c: Client, ch: ChatChannel) =
-  var topicMsg: string
+  var msg: string
 
   if ch.topic == "":
-    topicMsg = ":No topic is set"
+    msg = ":No topic set"
   else:
-    topicMsg = fmt":{ch.topic}"
+    msg = fmt":{ch.topic}"
 
-  let response = fmt":{c.servername} 332 {ch.name} :{topicMsg}"
+  let topic = fmt":{c.servername} 332 {ch.name} :{msg}"
 
-  discard c.send(response)
+  discard c.send(topic)
 
 proc sendNames(c: Client, ch: ChatChannel) =
   var names: seq[string]
 
   for a in ch.clients:
-    names.add(a.nickname)
+    add(names, a.nickname)
 
   let
-    namesList = names.join(" ")
+    namesList = join(names, " ")
     msg = [
       fmt":{c.servername} 353 {c.nickname} = {ch.name} :{namesList}",
       fmt":{c.servername} 366 {ch.name} :End of /NAMES list"
@@ -106,8 +106,7 @@ proc getEpochTime*(): int =
 
 proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
 
-proc pingClient*(c: Client) =
-  discard c.send("PING " & c.nickname)
+proc pingClient*(c: Client) = discard c.send("PING " & c.nickname)
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
   while true:
@@ -131,11 +130,11 @@ proc sendMotd*(c: Client) =
 
 proc sendLuser*(c: Client) =
   let
-    userCount = s.clients.len
+    userCount = s.clients.len()
     invisibleCount = 0
     onlineOperCount = 0
     unknownConnectionCount = 0
-    channelCount = s.channels.len
+    channelCount = s.channels.len()
     serverCount = 1
     luser = @[
       fmt":{c.servername} 251 {c.nickname} :There are {userCount} users and {invisibleCount} invisible on {serverCount} servers",

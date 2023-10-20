@@ -56,15 +56,15 @@ proc clientRegistrar(c: Client) =
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
   of "PASS":
-    c.hasArgs(params, 1): c.passMsg(params)
+    c.hasArgs(1): c.passMsg(params)
   of "NICK":
-    c.hasArgs(params, 1): c.nickMsg(params)
+    c.hasArgs(1): c.nickMsg(params)
   of "USER":
-    c.hasArgs(params, 3): c.userMsg(params, msg)
+    c.hasArgs(3): c.userMsg(params, msg)
   of "JOIN":
-    c.hasArgs(params, 1): c.joinMsg(params)
+    c.hasArgs(1): c.joinMsg(params)
   of "PRIVMSG":
-    c.hasArgs(params, 2): c.privMsg(params, msg)
+    c.hasArgs(2): c.privMsg(params, msg)
   of "PONG": c.updateTimestamp()
 
   c.clientRegistrar()
@@ -78,7 +78,7 @@ proc argHandler(c: Client, line: string) =
   
   var msg: string
   
-  if args.len > 1:
+  if len(args) > 1:
     msg = join(parts[1..^1], " ")
   
   discard c.cmdHandler(cmd, params, msg)
