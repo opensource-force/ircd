@@ -4,9 +4,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: osf-irc
+    container_name: osfircd
     ports:
       - "6667:6667"
     volumes:
-      - ./src:/app
+      - ./:/app
     restart: unless-stopped

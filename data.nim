@@ -2,22 +2,22 @@ import asyncnet
 
 type
   Server* = object
-    name*: string
     socket*: AsyncSocket
     clients*: seq[Client]
     channels*: seq[ChatChannel]
+  Client* = ref object
+    ipAddr*: string
+    socket*: AsyncSocket
+    password*: string
+    nickname*: string
+    hopcount*: int
+    username*, hostname*, servername*, realname*: string
+    gotPass*, gotNick*, gotUser*: bool
+    registered*: bool
+    timestamp*: int
   ChatChannel* = ref object
     name*: string
     topic*: string
     clients*: seq[Client]
-  Client* = ref object
-    socket*: AsyncSocket
-    gotPass*, gotNick*, gotUser*: bool
-    registered*: bool
-    nickname*: string
-    username*, hostname*, realname*: string
-    ipAddr*: string
-    timestamp*: int
 
-var
-  s*: Server
+var s*: Server
