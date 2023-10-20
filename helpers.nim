@@ -10,8 +10,6 @@ template hasArgs*(c: Client, minArgs: int, code: untyped) =
     code
     c.updateTimestamp()
 
-    echo(cmd, params)
-
 proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\c\L")
 

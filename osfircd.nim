@@ -44,6 +44,17 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
 
   c.sendNick(target, msg)
 
+proc listMsg(c: Client, params: seq[string]) =
+  if len(params) > 0:
+    for a in s.channels:
+      if a.name in params:
+        discard c.send(fmt"{a.name}: {a.topic}")
+
+    return
+
+  for a in s.channels:
+    discard c.send(fmt"{a.name}: {a.topic}")
+
 proc clientRegistrar(c: Client) =
   if not c.registered and c.gotPass and c.gotNick and c.gotUser:
     c.registered = true
@@ -66,8 +77,11 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
   of "PRIVMSG":
     c.hasArgs(2): c.privMsg(params, msg)
   of "PONG": c.updateTimestamp()
+  of "LIST": c.listMsg(params)
 
   c.clientRegistrar()
+
+  echo(cmd, params, msg)
 
 proc argHandler(c: Client, line: string) =
   let
