@@ -44,6 +44,17 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
 
   c.sendNick(target, msg)
 
+proc listMsg(c: Client, params: seq[string]) =
+  if len(params) > 0:
+    for a in s.channels:
+      if a.name in params:
+        discard c.send(fmt"{a.name}: {a.topic}")
+
+    return
+
+  for a in s.channels:
+    discard c.send(fmt"{a.name}: {a.topic}")
+
 proc clientRegistrar(c: Client) =
   if not c.registered and c.gotPass and c.gotNick and c.gotUser:
     c.registered = true
@@ -56,18 +67,21 @@ proc clientRegistrar(c: Client) =
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
   of "PASS":
-    c.hasArgs(params, 1): c.passMsg(params)
+    c.hasArgs(1): c.passMsg(params)
   of "NICK":
-    c.hasArgs(params, 1): c.nickMsg(params)
+    c.hasArgs(1): c.nickMsg(params)
   of "USER":
-    c.hasArgs(params, 3): c.userMsg(params, msg)
+    c.hasArgs(3): c.userMsg(params, msg)
   of "JOIN":
-    c.hasArgs(params, 1): c.joinMsg(params)
+    c.hasArgs(1): c.joinMsg(params)
   of "PRIVMSG":
-    c.hasArgs(params, 2): c.privMsg(params, msg)
+    c.hasArgs(2): c.privMsg(params, msg)
   of "PONG": c.updateTimestamp()
+  of "LIST": c.listMsg(params)
 
   c.clientRegistrar()
+
+  echo(cmd, params, msg)
 
 proc argHandler(c: Client, line: string) =
   let
@@ -78,7 +92,7 @@ proc argHandler(c: Client, line: string) =
   
   var msg: string
   
-  if args.len > 1:
+  if len(args) > 1:
     msg = join(parts[1..^1], " ")
   
   discard c.cmdHandler(cmd, params, msg)
