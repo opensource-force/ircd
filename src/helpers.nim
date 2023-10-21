@@ -14,14 +14,14 @@ proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\c\L")
 
 proc getClientByNickname*(nick: string): Client =
-  for a in s.clients:
-    if a.nickname == nick:
-      return a
+  for client in s.clients:
+    if client.nickname == nick:
+      return client
 
 proc getChannelByName*(name: string): ChatChannel =
-  for a in s.channels:
-    if a.name == name:
-      return a
+  for ch in s.channels:
+    if ch.name == name:
+      return ch
 
 proc removeClient*(c: Client) =
   echo("Connection closed")
@@ -41,14 +41,14 @@ proc sendNick*(c: Client, target: string, msg: string) =
   discard client.send(message)
 
 proc createChannel*(c: Client, name: string): ChatChannel =
-  for channel in s.channels:
-    if channel.name == name:
-      return channel
+  for ch in s.channels:
+    if ch.name == name:
+      return ch
   
-  let newChannel = ChatChannel(name: name, clients: @[])
-  s.channels.add(newChannel)
+  let newCh = ChatChannel(name: name)
+  s.channels.add(newCh)
   
-  return newChannel
+  return newCh
 
 proc sendTopic(c: Client, ch: ChatChannel) =
   var msg: string
@@ -64,7 +64,6 @@ proc sendTopic(c: Client, ch: ChatChannel) =
 
 proc sendNames(c: Client, ch: ChatChannel) =
   var names: seq[string]
-
   for a in ch.clients:
     add(names, a.nickname)
 
@@ -90,10 +89,10 @@ proc joinChannel*(c: Client, ch: ChatChannel, name: string) =
 proc sendChannel*(c: Client, target: string, msg: string) =
   let 
     sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
-    target = getChannelByName(target)
-    message = fmt":{sender} PRIVMSG {target.name} :{msg}"
+    ch = getChannelByName(target)
+    message = fmt":{sender} PRIVMSG {ch.name} :{msg}"
   
-  for client in target.clients:
+  for client in ch.clients:
     if client.nickname != c.nickname:
       discard client.send(message)
 
@@ -107,13 +106,16 @@ proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
 proc pingClient*(c: Client) = discard c.send("PING " & c.nickname)
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
+  var skip: bool
+
   while true:
     if getEpochTime() - c.timestamp >= interval * 2:
       c.removeClient()
       return
-    elif getEpochTime() - c.timestamp >= interval:
-      c.pingClient()
-      
+    
+    if skip: c.pingClient()
+    skip = true
+
     await sleepAsync(interval * 1000)
 
 proc sendMotd*(c: Client) =
