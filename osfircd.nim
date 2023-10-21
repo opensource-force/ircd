@@ -1,9 +1,11 @@
 import
   asyncdispatch, nativesockets,
   strutils, strformat,
-  ./data, ./helpers
+  ./src/[data, helpers]
 
-const port = Port(6667)
+const
+  listenAddr = "192.168.1.16"
+  port = Port(6667)
 
 proc passMsg(c: Client, params: seq[string]) =
   c.password = params[0]
@@ -31,9 +33,9 @@ proc userMsg(c: Client, params: seq[string], msg: string) =
 proc joinMsg(c: Client, params: seq[string]) =
   let
     name = params[0]
-    channel = c.createChannel(name)
+    ch = c.createChannel(name)
     
-  c.joinChannel(channel, name)
+  c.joinChannel(ch, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
   let target = params[0]
@@ -46,14 +48,14 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
 
 proc listMsg(c: Client, params: seq[string]) =
   if len(params) > 0:
-    for a in s.channels:
-      if a.name in params:
-        discard c.send(fmt"{a.name}: {a.topic}")
+    for ch in s.channels:
+      if c in ch.clients and ch.name in params:
+        discard c.send(fmt"{ch.name}: {ch.topic}")
 
     return
 
-  for a in s.channels:
-    discard c.send(fmt"{a.name}: {a.topic}")
+  for ch in s.channels:
+    discard c.send(fmt"{ch.name}: {ch.topic}")
 
 proc clientRegistrar(c: Client) =
   if not c.registered and c.gotPass and c.gotNick and c.gotUser:
@@ -115,9 +117,9 @@ proc clientHandler(c: Client) {.async.} =
 proc serve() {.async.} =
   s.socket = newAsyncSocket()
   s.socket.setSockOpt(OptReuseAddr, true)
-  s.socket.bindAddr(port)
+  s.socket.bindAddr(port, listenAddr)
   s.socket.listen()
-  echo(fmt"Listening on {port}")
+  echo(fmt"Listening on {listenAddr}:{port}")
 
   while true:
     let
