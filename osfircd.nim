@@ -4,7 +4,7 @@ import
   ./src/[data, helpers]
 
 const
-  listenAddr = "192.168.1.16"
+  #listenAddr = "192.168.1.16"
   port = Port(6667)
 
 proc passMsg(c: Client, params: seq[string]) =
@@ -38,6 +38,10 @@ proc joinMsg(c: Client, params: seq[string]) =
   c.joinChannel(ch, name)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
+  if len(msg) == 0:
+    discard c.send("No message specified")
+    return
+
   let target = params[0]
 
   if target.startsWith("#"):
@@ -77,7 +81,7 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
   of "JOIN":
     c.hasArgs(1): c.joinMsg(params)
   of "PRIVMSG":
-    c.hasArgs(2): c.privMsg(params, msg)
+    c.hasArgs(1): c.privMsg(params, msg)
   of "PONG": c.updateTimestamp()
   of "LIST": c.listMsg(params)
 
@@ -117,9 +121,9 @@ proc clientHandler(c: Client) {.async.} =
 proc serve() {.async.} =
   s.socket = newAsyncSocket()
   s.socket.setSockOpt(OptReuseAddr, true)
-  s.socket.bindAddr(port, listenAddr)
+  s.socket.bindAddr(port)
   s.socket.listen()
-  echo(fmt"Listening on {listenAddr}:{port}")
+  echo(fmt"Listening on {port}")
 
   while true:
     let
