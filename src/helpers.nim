@@ -11,7 +11,7 @@ template hasArgs*(c: Client, minArgs: int, code: untyped) =
     c.updateTimestamp()
 
 proc send*(c: Client, msg: string) {.async.} =
-  await c.socket.send(msg & "\c\L")
+  await c.socket.send(msg & "\n\r")
 
 proc getClientByNickname*(nick: string): Client =
   for client in s.clients:
