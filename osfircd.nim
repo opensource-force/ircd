@@ -32,10 +32,17 @@ proc userMsg(c: Client, params: seq[string], msg: string) =
 
 proc joinMsg(c: Client, params: seq[string]) =
   let
-    name = params[0]
-    ch = c.createChannel(name)
+    names = params[0].split(",")
     
-  c.joinChannel(ch, name)
+  for name in names:
+    let ch = c.createChannel(name)
+    ch.clients.add(c)
+    
+    if c in ch.clients:
+      discard c.send(fmt":{c.nickname} JOIN {ch.name}")
+
+    c.sendTopic(ch)
+    c.sendNames(ch)
 
 proc privMsg(c: Client, params: seq[string], msg: string) =
   if len(msg) == 0:
@@ -51,15 +58,18 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
   c.sendNick(target, msg)
 
 proc listMsg(c: Client, params: seq[string]) =
-  if len(params) > 0:
+  if len(params) == 0:
     for ch in s.channels:
-      if c in ch.clients and ch.name in params:
-        discard c.send(fmt"{ch.name}: {ch.topic}")
+      if c in ch.clients:
+        discard c.send(fmt"{ch.name} {ch.topic}")
 
     return
+  
+  let chs = params[0].split(",")
 
   for ch in s.channels:
-    discard c.send(fmt"{ch.name}: {ch.topic}")
+    if c in ch.clients and ch.name in chs:
+      discard c.send(fmt"{ch.name}: {ch.topic}")
 
 proc clientRegistrar(c: Client) =
   if not c.registered and c.gotPass and c.gotNick and c.gotUser:
