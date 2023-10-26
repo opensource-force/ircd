@@ -28,8 +28,6 @@ git clone https://github.com/opensource-force/ircd; cd snake/ircd
 nim c osfircd.nim
 ```
 
----
-
 ## Execution
 Execute client from within downloaded directory
 ```bash
