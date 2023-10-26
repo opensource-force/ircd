@@ -45,12 +45,12 @@ proc createChannel*(c: Client, name: string): ChatChannel =
     if ch.name == name:
       return ch
   
-  let newCh = ChatChannel(name: name)
+  let newCh = ChatChannel(name: name, topic: "unset")
   s.channels.add(newCh)
   
   return newCh
 
-proc sendTopic(c: Client, ch: ChatChannel) =
+proc sendTopic*(c: Client, ch: ChatChannel) =
   var msg: string
 
   if ch.topic == "":
@@ -62,8 +62,9 @@ proc sendTopic(c: Client, ch: ChatChannel) =
 
   discard c.send(topic)
 
-proc sendNames(c: Client, ch: ChatChannel) =
+proc sendNames*(c: Client, ch: ChatChannel) =
   var names: seq[string]
+  
   for a in ch.clients:
     add(names, a.nickname)
 
@@ -75,16 +76,6 @@ proc sendNames(c: Client, ch: ChatChannel) =
     ]
 
   discard c.send(join(msg, "\n"))
-
-proc joinChannel*(c: Client, ch: ChatChannel, name: string) =
-  if ch in s.channels:
-    ch.clients.add(c)
-
-    for a in ch.clients:
-      discard a.send(fmt":{c.nickname} JOIN {name}")
-
-    c.sendTopic(ch)
-    c.sendNames(ch)
 
 proc sendChannel*(c: Client, target: string, msg: string) =
   let 
@@ -103,7 +94,7 @@ proc getEpochTime*(): int =
 
 proc updateTimestamp*(c: Client) = c.timestamp = getEpochTime()
 
-proc pingClient*(c: Client) = discard c.send("PING " & c.nickname)
+proc pingClient*(c: Client) = discard c.send(fmt"PING {c.nickname}")
 
 proc checkLiveliness*(c: Client, interval: int) {.async.} =
   var skip: bool
