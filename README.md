@@ -1,6 +1,6 @@
 <div align="center">
 <h1>OSFIRCd :speech_balloon:</h1>
-<p>A super minimal classic snake implementation written in Nim</p>
+<p>A super minimal IRC server written in Nim</p>
 <a href='#'><img src="https://img.shields.io/badge/Made%20with-Nim-&?style=flat-square&labelColor=232329&color=FFE953&logo=nim"/></a>
 <a href='#'><img src="https://img.shields.io/badge/Maintained%3F-Yes-green.svg?style=flat-square&labelColor=232329&color=5277C3"></img></a>
 <br/>
