@@ -57,6 +57,18 @@ proc privMsg(c: Client, params: seq[string], msg: string) =
 
   c.sendNick(target, msg)
 
+proc notice(c: Client, params: seq[string], msg: string) = 
+  if len(msg) == 0:
+    discard c.send("No message specified")
+    return
+
+  let target = params[0]
+
+  if target.startsWith("#"):
+    return
+  
+  c.sendNotice(target, msg)
+
 proc listMsg(c: Client, params: seq[string]) =
   if len(params) == 0:
     for ch in s.channels:
@@ -92,6 +104,9 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
     c.hasArgs(1): c.joinMsg(params)
   of "PRIVMSG":
     c.hasArgs(1): c.privMsg(params, msg)
+  of "NOTICE":
+    c.hasArgs(1): c.notice(params, msg)
+
   of "PONG": c.updateTimestamp()
   of "LIST": c.listMsg(params)
 
