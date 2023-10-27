@@ -1,4 +1,5 @@
 import asyncnet
+import tables
 export asyncnet
 
 type
@@ -9,6 +10,7 @@ type
   Client* = ref object
     ipAddr*: string
     socket*: AsyncSocket
+    modes*: Table[string, string]
     password*: string
     nickname*: string
     hopcount*: int
@@ -20,5 +22,6 @@ type
     name*: string
     topic*: string
     clients*: seq[Client]
+    modes*: Table[string, string]
 
 var s*: Server
