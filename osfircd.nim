@@ -1,6 +1,6 @@
 import
   asyncdispatch, nativesockets,
-  strutils, strformat,
+  strutils, strformat, tables,
   ./src/[data, helpers]
 
 const
@@ -156,7 +156,8 @@ proc serve() {.async.} =
       c = Client(
         ipAddr: ipAddr,
         socket: socket,
-        timestamp: getEpochTime()
+        timestamp: getEpochTime(),
+        modes: initTable[string, string]()
       )
     
     asyncCheck c.clientHandler()

@@ -1,6 +1,6 @@
 import
   asyncdispatch,
-  strutils, strformat, times,
+  strutils, strformat, times, tables,
   ./data
 
 template hasArgs*(c: Client, minArgs: int, code: untyped) =
@@ -62,7 +62,7 @@ proc createChannel*(c: Client, name: string): ChatChannel =
     if ch.name == name:
       return ch
   
-  let newCh = ChatChannel(name: name, topic: "unset")
+  let newCh = ChatChannel(name: name, topic: "unset", modes: initTable[string, string]())
   s.channels.add(newCh)
   
   return newCh
