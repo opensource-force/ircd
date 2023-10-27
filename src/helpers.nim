@@ -32,12 +32,29 @@ proc removeClient*(c: Client) =
       s.clients.del(i)
       break
 
+proc getSenderHostname(c: Client): string =
+  return fmt"{c.nickname}!{c.username}@{c.hostname}"
+
 proc sendNick*(c: Client, target: string, msg: string) =
   let
-    sender = fmt"{c.nickname}!{c.username}@{c.hostname}"
+    sender = c.getSenderHostname()
     client = getClientByNickname(target)
-    message = fmt":{sender} PRIVMSG {client.nickname} :{msg}"
 
+  if client.isNil:
+    return
+  let message = fmt":{sender} PRIVMSG {client.nickname} :{msg}"
+
+  discard client.send(message)
+
+proc sendNotice*(c: Client, target: string, msg: string) = 
+  let 
+    sender = c.getSenderHostname()
+    client = getClientByNickname(target)
+
+  if client.isNil:
+    return
+  let message = fmt":{sender} NOTICE {client.nickname} :{msg}"
+  
   discard client.send(message)
 
 proc createChannel*(c: Client, name: string): ChatChannel =
