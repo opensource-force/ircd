@@ -103,6 +103,27 @@ proc clientRegistrar(c: Client) =
     c.sendMotd()
     c.sendLuser()
 
+proc modeMsg(c: Client, params: seq[string]) =
+  let
+    target = params[0]
+    symbol = params[1][0..1]
+    modes = params[1][1..^1]
+    value = params[2]
+
+  if startsWith(target, "#"):
+    let ch = getChannelByName(target)
+    if symbol == "+":
+        ch.setModes(modes, value)
+    elif symbol == "-":
+      ch.removeModes(modes)
+
+    return
+
+  if symbol == "+":
+    c.setModes(modes, c.nickname)
+  elif symbol == "-":
+    c.removeModes(modes)
+
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
   of "PASS":
@@ -113,6 +134,8 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
     c.hasArgs(3): c.userMsg(params, msg)
   of "JOIN":
     c.hasArgs(1): c.joinMsg(params)
+  of "MODE":
+    c.hasArgs(2): c.modeMsg(params)
   of "TOPIC":
     c.hasArgs(1): c.topicMsg(params, msg)
   of "PRIVMSG":

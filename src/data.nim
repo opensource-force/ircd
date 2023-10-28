@@ -10,7 +10,7 @@ type
   Client* = ref object
     ipAddr*: string
     socket*: AsyncSocket
-    modes*: Table[string, string]
+    modes*: Table[char, string]
     password*: string
     nickname*: string
     hopcount*: int
@@ -22,6 +22,6 @@ type
     name*: string
     topic*: string
     clients*: seq[Client]
-    modes*: Table[string, string]
+    modes*: Table[char, string]
 
 var s*: Server
