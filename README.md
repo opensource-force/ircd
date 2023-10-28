@@ -36,15 +36,15 @@ Execute client from within downloaded directory
 
 ## Implemented
 Messages:
-- PASS <password>
-- NICK <nickname>
-- USER <username> <hostname> <servername> [:realname]
-- JOIN <#channel1,#channel2>
-- PRIVMSG <nickname> & PRIVMSG <#channel>
-- LIST [#channel1,#channel2]
-- PONG
+- `PASS <password>`
+- `NICK <nickname>`
+- `USER <username> <hostname> <servername> [:realname]`
+- `JOIN <#channel1,#channel2>`
+- `PRIVMSG <nickname> & PRIVMSG <#channel>`
+- `LIST [#channel1,#channel2]`
+- `PONG`
 
 Other features:
 - Client registration
-- Send MOTD & LUSER on registration
-- Send channel TOPIC & NAMES on channel join
+- Send `MOTD` & `LUSER` on registration
+- Send `TOPIC` & `NAMES` on channel join
