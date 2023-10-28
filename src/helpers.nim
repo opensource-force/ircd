@@ -10,6 +10,40 @@ template hasArgs*(c: Client, minArgs: int, code: untyped) =
     code
     c.updateTimestamp()
 
+# User Modes
+proc userHasMode*(c: Client, mode: string): bool =
+  return mode in c.modes
+
+proc userTryGetMode*(c: Client, mode: string): (bool, string) =
+  if userHasMode(c, mode) == false:
+    return (false, "")
+
+  return (true, c.modes[mode])
+
+proc userSetMode*(c: Client, mode: string, value: string) =
+  c.modes[mode] = value
+
+proc userRemoveMode*(c: Client, mode: string) =
+  if mode in c.modes:
+    c.modes.del(mode)
+
+# Channel Modes
+proc channelHasMode*(ch: ChatChannel, mode: string): bool =
+  return mode in ch.modes
+
+proc channelTryGetMode*(ch: ChatChannel, mode: string): (bool, string) =
+  if channelHasMode(ch, mode) == false:
+    return (false, "")
+
+  return (true, ch.modes[mode])
+
+proc channelSetMode*(ch: ChatChannel, mode: string, value: string) =
+  ch.modes[mode] = value
+
+proc channelRemoveMode*(ch: ChatChannel, mode: string) = 
+  if mode in ch.modes:
+    ch.modes.del(mode)
+
 proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\n\r")
 
