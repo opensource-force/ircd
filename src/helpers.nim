@@ -1,6 +1,5 @@
 import
-  asyncdispatch,
-  strutils, strformat, times, tables,
+  std/[asyncdispatch, strutils, sequtils, strformat, times],
   ./data
 
 template hasArgs*(c: Client, minArgs: int, code: untyped) =
@@ -32,7 +31,7 @@ proc hasMode*(ch: ChatChannel, mode: char): bool =
   return mode in ch.modes
 
 proc getMode*(ch: ChatChannel, mode: char): (bool, char) =
-  if ch.hasMode(mode) == false:
+  if not ch.hasMode(mode):
     return(false, '_') # o_0
 
   return(true, mode)
@@ -63,7 +62,7 @@ proc removeClient*(c: Client) =
   echo("Connection closed")
   c.socket.close()
   
-  for i in 0..<s.clients.len:
+  for i, _ in s.clients:
     if s.clients[i] == c:
       s.clients.del(i)
       break
@@ -98,30 +97,24 @@ proc createChannel*(c: Client, name: string): ChatChannel =
     if ch.name == name:
       return ch
   
-  let newCh = ChatChannel(name: name, topic: "unset", modes: initTable[string, string]())
+  let newCh = ChatChannel(name: name, topic: "unset", modes: initTable[char, string]())
   s.channels.add(newCh)
   
   return newCh
 
 proc sendTopic*(c: Client, ch: ChatChannel) =
-  var msg: string
-
-  if ch.topic == "":
-    msg = ":No topic set"
+  let msg = if ch.topic == "":
+    ":No topic set"
   else:
-    msg = fmt":{ch.topic}"
+    fmt":{ch.topic}"
 
   let topic = fmt":{c.servername} 332 {ch.name} :{msg}"
 
   discard c.send(topic)
 
 proc sendNames*(c: Client, ch: ChatChannel) =
-  var names: seq[string]
-  
-  for a in ch.clients:
-    add(names, a.nickname)
-
   let
+    names = ch.clients.mapIt(it.nickname)
     namesList = join(names, " ")
     msg = [
       fmt":{c.servername} 353 {c.nickname} = {ch.name} :{namesList}",

@@ -1,6 +1,5 @@
-import asyncnet
-import tables
-export asyncnet
+import std/[asyncnet, tables]
+export asyncnet, tables
 
 type
   Server* = object
