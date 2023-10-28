@@ -1,6 +1,5 @@
 import
-  asyncdispatch, nativesockets,
-  strutils, strformat, tables,
+  std/[asyncdispatch, nativesockets, strutils, strformat, tables],
   ./src/[data, helpers]
 
 const
@@ -44,6 +43,18 @@ proc joinMsg(c: Client, params: seq[string]) =
     c.sendTopic(ch)
     c.sendNames(ch)
 
+proc topicMsg(c: Client, params: seq[string], msg: string) =
+  let
+    name = params[0]
+    ch = getChannelByName(name)
+
+  if startsWith(name, "#"):
+    if len(msg) == 0:
+      discard c.send(ch.topic)
+      return
+
+    ch.topic = msg
+
 proc privMsg(c: Client, params: seq[string], msg: string) =
   if len(msg) == 0:
     discard c.send("No message specified")
@@ -84,7 +95,7 @@ proc listMsg(c: Client, params: seq[string]) =
       discard c.send(fmt"{ch.name}: {ch.topic}")
 
 proc clientRegistrar(c: Client) =
-  if not c.registered and c.gotPass and c.gotNick and c.gotUser:
+  if c.gotPass and c.gotNick and c.gotUser and not c.registered:
     c.registered = true
     echo(fmt"{c.nickname} registered")
     discard c.send("Registered")
@@ -102,6 +113,8 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
     c.hasArgs(3): c.userMsg(params, msg)
   of "JOIN":
     c.hasArgs(1): c.joinMsg(params)
+  of "TOPIC":
+    c.hasArgs(1): c.topicMsg(params, msg)
   of "PRIVMSG":
     c.hasArgs(1): c.privMsg(params, msg)
   of "NOTICE":
