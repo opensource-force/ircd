@@ -11,38 +11,40 @@ template hasArgs*(c: Client, minArgs: int, code: untyped) =
     c.updateTimestamp()
 
 # User Modes
-proc userHasMode*(c: Client, mode: string): bool =
+proc hasMode*(c: Client, mode: char): bool =
   return mode in c.modes
 
-proc userTryGetMode*(c: Client, mode: string): (bool, string) =
-  if userHasMode(c, mode) == false:
-    return (false, "")
+proc getMode*(c: Client, mode: char): char =
+  if c.hasMode(mode):
+    return mode
 
-  return (true, c.modes[mode])
+proc setModes*(c: Client, modes: string, value: string) =
+  for mode in modes:
+    c.modes[mode] = value
 
-proc userSetMode*(c: Client, mode: string, value: string) =
-  c.modes[mode] = value
-
-proc userRemoveMode*(c: Client, mode: string) =
-  if mode in c.modes:
-    c.modes.del(mode)
+proc removeModes*(c: Client, modes: string) =
+  for mode in modes:
+    if mode in c.modes:
+      c.modes.del(mode)
 
 # Channel Modes
-proc channelHasMode*(ch: ChatChannel, mode: string): bool =
+proc hasMode*(ch: ChatChannel, mode: char): bool =
   return mode in ch.modes
 
-proc channelTryGetMode*(ch: ChatChannel, mode: string): (bool, string) =
-  if channelHasMode(ch, mode) == false:
-    return (false, "")
+proc getMode*(ch: ChatChannel, mode: char): (bool, char) =
+  if ch.hasMode(mode) == false:
+    return(false, '_') # o_0
 
-  return (true, ch.modes[mode])
+  return(true, mode)
 
-proc channelSetMode*(ch: ChatChannel, mode: string, value: string) =
-  ch.modes[mode] = value
+proc setModes*(ch: ChatChannel, modes: string, value: string) =
+  for mode in modes:
+    ch.modes[mode] = value
 
-proc channelRemoveMode*(ch: ChatChannel, mode: string) = 
-  if mode in ch.modes:
-    ch.modes.del(mode)
+proc removeModes*(ch: ChatChannel, modes: string) = 
+  for mode in modes:
+    if mode in ch.modes:
+      ch.modes.del(mode)
 
 proc send*(c: Client, msg: string) {.async.} =
   await c.socket.send(msg & "\n\r")
