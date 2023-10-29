@@ -1,5 +1,5 @@
 import
-  std/[asyncdispatch, nativesockets, strutils, strformat, tables],
+  std/[asyncdispatch, nativesockets, strutils, strformat],
   ./src/[data, helpers]
 
 const
@@ -42,6 +42,27 @@ proc joinMsg(c: Client, params: seq[string]) =
 
     c.sendTopic(ch)
     c.sendNames(ch)
+
+proc modeMsg(c: Client, params: seq[string]) =
+  let
+    target = params[0]
+    symbol = params[1][0..1]
+    modes = params[1][1..^1]
+    value = params[2]
+
+  if startsWith(target, "#"):
+    let ch = getChannelByName(target)
+    if symbol == "+":
+        ch.setModes(modes, value)
+    elif symbol == "-":
+      ch.removeModes(modes)
+
+    return
+
+  if symbol == "+":
+    c.setModes(modes, c.nickname)
+  elif symbol == "-":
+    c.removeModes(modes)
 
 proc topicMsg(c: Client, params: seq[string], msg: string) =
   let
@@ -102,27 +123,6 @@ proc clientRegistrar(c: Client) =
 
     c.sendMotd()
     c.sendLuser()
-
-proc modeMsg(c: Client, params: seq[string]) =
-  let
-    target = params[0]
-    symbol = params[1][0..1]
-    modes = params[1][1..^1]
-    value = params[2]
-
-  if startsWith(target, "#"):
-    let ch = getChannelByName(target)
-    if symbol == "+":
-        ch.setModes(modes, value)
-    elif symbol == "-":
-      ch.removeModes(modes)
-
-    return
-
-  if symbol == "+":
-    c.setModes(modes, c.nickname)
-  elif symbol == "-":
-    c.removeModes(modes)
 
 proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.async.} =
   case cmd
@@ -193,7 +193,7 @@ proc serve() {.async.} =
         ipAddr: ipAddr,
         socket: socket,
         timestamp: getEpochTime(),
-        modes: initTable[string, string]()
+        modes: initTable[char, string]()
       )
     
     asyncCheck c.clientHandler()
