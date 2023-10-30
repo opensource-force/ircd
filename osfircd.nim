@@ -1,5 +1,5 @@
 import
-  std/[asyncdispatch, nativesockets, strutils, strformat],
+  std/[asyncdispatch, nativesockets, strutils, strformat, sequtils],
   ./src/[data, helpers]
 
 const
@@ -76,6 +76,26 @@ proc topicMsg(c: Client, params: seq[string], msg: string) =
 
     ch.topic = msg
 
+proc kickCmd(c: Client, params: seq[string], msg: string) =
+  let
+    chs = params[0].split(",")
+    nicks = params[1].split(",")
+
+  for ch in chs:
+    let ch = getChannelByName(ch)
+
+    for mode, val in ch.modes:
+      #if val == c.nickname and mode == 'o':
+      for i, nick in nicks:
+        let client = getClientByNickname(nick)
+          
+        if ch.clients[i] == client:
+          ch.clients.del(i)
+          discard client.send(fmt":{c.nickname} KICK {ch.name} {nick} :{msg}")
+          discard client.send(fmt"Kicked {nick} from {ch.name} for {msg}")
+      #else:
+        #discard c.send("Need chanop (o)")
+
 proc privMsg(c: Client, params: seq[string], msg: string) =
   if len(msg) == 0:
     discard c.send("No message specified")
@@ -138,6 +158,8 @@ proc cmdHandler(c: Client, cmd: string, params: seq[string], msg: string) {.asyn
     c.hasArgs(2): c.modeMsg(params)
   of "TOPIC":
     c.hasArgs(1): c.topicMsg(params, msg)
+  of "KICK":
+    c.hasArgs(2): c.kickCmd(params, msg)
   of "PRIVMSG":
     c.hasArgs(1): c.privMsg(params, msg)
   of "NOTICE":
