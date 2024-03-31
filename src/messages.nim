@@ -1,5 +1,5 @@
 import std/[strutils, strformat]
-import ./common
+import ./[common, helpers]
 
 # https://www.rfcreader.com/#rfc1459_line671
 # <username> <hostname> <servername> <:realname>
@@ -36,9 +36,12 @@ proc msgHandler*(c: Client, msg: string, params: seq[string], context: string) =
         c.nickMsg(params)
     of "USER":
         c.userMsg(params, context)
+    of "PONG":
+        c.epoch = getEpoch()
 
     echo(fmt"{msg} par{params} con:{context}")
 
     if c.gotNick and c.gotUser and not c.registered:
         c.registered = true
+
         echo("Client registered!")
