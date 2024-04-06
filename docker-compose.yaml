@@ -1,0 +1,12 @@
+version: '3'
+services:
+  ircd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: osfircd
+    ports:
+      - "6667:6667"
+    volumes:
+      - ./:/app
+    restart: unless-stopped
