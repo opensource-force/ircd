@@ -4,6 +4,7 @@ use tokio::io::AsyncReadExt;
 const ADDR: &str = "192.168.1.11";
 const PORT: &str = "6667";
 
+#[derive(Clone)]
 struct Client {
     nick: String,
     user: String,
@@ -13,6 +14,27 @@ struct Client {
     got_nick: bool,
     got_user: bool,
     registered: bool
+}
+
+struct Server {
+    clients: Vec<Client>
+}
+
+impl Server {
+    fn new() -> Self { Self { clients: Vec::new() } }
+
+    async fn run(mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let listener = TcpListener::bind(format!("{ADDR}:{PORT}")).await?;
+
+        loop {
+            let (socket, _) = listener.accept().await?;
+            let client = Client::new();
+
+            self.clients.push(client.clone());
+
+            tokio::spawn(async move { client.handler(socket).await; });
+        }
+    }
 }
 
 impl Client {
@@ -38,6 +60,10 @@ impl Client {
             let n = match socket.read(&mut buf).await {
                 Ok(n) if n == 0 => {
                     println!("Client {} closed socket", self.nick);
+
+                    // drop client
+                    //server.clients.retatin(|c| c.nick != self.nick);
+
                     return;
                 }
                 Ok(n) => n,
@@ -97,15 +123,8 @@ async fn msg_handler(line: &str, client: &mut Client) {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let listener = TcpListener::bind(format!("{ADDR}:{PORT}")).await?;
-
-    loop {
-        let (socket, _) = listener.accept().await?;
-        let client = Client::new();
-
-        tokio::spawn(async move {
-            client.handler(socket).await;
-        });
-    }
+async fn main() {
+    let server = Server::new();
+    
+    server.run().await.unwrap();
 }
