@@ -1,3 +1,5 @@
+use std::sync::{Arc, RwLock};
+
 use tokio::net::{ TcpListener, TcpStream };
 use tokio::io::AsyncReadExt;
 
@@ -17,22 +19,22 @@ struct Client {
 }
 
 struct Server {
-    clients: Vec<Client>
+    clients: Arc<RwLock<Vec<Client>>>
 }
 
 impl Server {
-    fn new() -> Self { Self { clients: Vec::new() } }
+    fn new() -> Self { Self { clients: Arc::new(RwLock::new(Vec::new())) } }
 
-    async fn run(mut self) -> Result<(), Box<dyn std::error::Error>> {
+    async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
         let listener = TcpListener::bind(format!("{ADDR}:{PORT}")).await?;
 
         loop {
             let (socket, _) = listener.accept().await?;
             let client = Client::new();
 
-            self.clients.push(client.clone());
+            let clients = self.clients.clone();
 
-            tokio::spawn(async move { client.handler(socket).await; });
+            tokio::spawn(async move { client.handler(socket, clients).await; });
         }
     }
 }
@@ -51,19 +53,27 @@ impl Client {
         }
     }
 
-    async fn handler(mut self, mut socket: TcpStream) {
+    async fn handler(self, mut socket: TcpStream, clients: Arc<RwLock<Vec<Client>>>) {
         println!("Client socket opened!");
+    
+        // add client
+        let mut clients = clients.write().unwrap();
+        clients.push(self.clone());
+        //
+        
+        println!("{} sockets open", clients.len());
 
         let mut buf = [0; 1024];
 
         loop {
             let n = match socket.read(&mut buf).await {
                 Ok(n) if n == 0 => {
-                    println!("Client {} closed socket", self.nick);
-
+                    println!("Client {} closed socket. {} sockets remain", self.nick, clients.len());
+    
                     // drop client
-                    //server.clients.retatin(|c| c.nick != self.nick);
-
+                    clients.retain(|c| c.nick != self.nick);
+                    //
+    
                     return;
                 }
                 Ok(n) => n,
@@ -74,52 +84,52 @@ impl Client {
             };
     
             let bytes = &buf[0..n];
-            let stream = String::from_utf8(bytes.to_vec()).unwrap();
+            let stream = String::from_utf8_lossy(bytes);
     
             for line in stream.lines() {
-                msg_handler(line, &mut self).await;
+                let client = self.clone();
+                client.msg_handler(line).await;
             }
         }
     }
-}
-
-async fn msg_handler(line: &str, client: &mut Client) {
-    println!("Command: {}", line);
-
-    let parts: Vec<&str> = line.split(':').collect();
-    let args: Vec<&str> = parts[0].split_whitespace().collect();
-    let cmd = args[0].to_string();
-    let params: Vec<String> = args[1..].iter().map(|&s| s.to_string()).collect();
-    let context = parts[1..].join(" ");
-
-    match cmd.as_str() {
-        "PASS" => {} // no password
-        "NICK" => {
-            client.nick = params[0].clone();
-            //client.hopcount = params[1];
     
-            if !client.nick.is_empty() {
-                client.got_nick = true;
+    async fn msg_handler(mut self, line: &str) {
+        println!("Command: {}", line);
+    
+        let parts: Vec<&str> = line.split(':').collect();
+        let args: Vec<&str> = parts[0].split_whitespace().collect();
+        let cmd = args[0].to_string();
+        let params: Vec<String> = args[1..].iter().map(|&s| s.to_string()).collect();
+        let context = parts[1..].join(" ");
+    
+        match cmd.as_str() {
+            "PASS" => {} // no password
+            "NICK" => {
+                self.nick = params[0].clone();
+                //client.hopcount = params[1];
+    
+                if !self.nick.is_empty() {
+                    self.got_nick = true;
+                }
             }
-        }
-        "USER" => {
-            client.user = params[0].clone();
-            client.host = params[1].clone();
-            client.server = params[2].clone();
-            client.real = context.clone();
+            "USER" => {
+                self.user = params[0].clone();
+                self.host = params[1].clone();
+                self.server = params[2].clone();
+                self.real = context.clone();
     
-            if params.len() > 2 && !context.is_empty() {
-                client.got_user = true;
+                if params.len() > 2 && !context.is_empty() {
+                    self.got_user = true;
+                }
             }
+            _ => println!("Invalid command: {}", cmd)
         }
-        _ => println!("Invalid command: {}", cmd)
-    }
     
-    if !client.registered && client.got_nick && client.got_user {
-        println!("{} registered!", client.nick);
-
-        client.registered = true;
-    }
+        if !self.registered && self.got_nick && self.got_user {
+            println!("{} registered!", self.nick);
+            self.registered = true;
+        }
+    }    
 }
 
 #[tokio::main]
