@@ -1,5 +1,6 @@
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
+use tokio::sync::RwLock;
 use tokio::net::{ TcpListener, TcpStream };
 use tokio::io::AsyncReadExt;
 
@@ -34,7 +35,7 @@ impl Server {
 
             let clients = self.clients.clone();
 
-            tokio::spawn(async move { client.handler(socket, clients).await; });
+            tokio::spawn(client.handler(socket, clients));
         }
     }
 }
@@ -57,23 +58,26 @@ impl Client {
         println!("Client socket opened!");
     
         // add client
-        let mut clients = clients.write().unwrap();
-        clients.push(self.clone());
+        let mut clients_guard = clients.write().await;
+        clients_guard.push(self.clone());
+
+        println!("{} sockets open", clients_guard.len());
+
+        drop(clients_guard);
         //
-        
-        println!("{} sockets open", clients.len());
 
         let mut buf = [0; 1024];
 
         loop {
             let n = match socket.read(&mut buf).await {
                 Ok(n) if n == 0 => {
-                    println!("Client {} closed socket. {} sockets remain", self.nick, clients.len());
-    
                     // drop client
-                    clients.retain(|c| c.nick != self.nick);
-                    //
-    
+                    let mut clients_guard = clients.write().await;
+
+                    println!("Client {} closed socket. {} sockets remain", self.nick, clients_guard.len());
+                    clients_guard.retain(|c| c.nick != self.nick);
+
+                    drop(clients_guard);  // just in case drop the guard even if it returns afterward.
                     return;
                 }
                 Ok(n) => n,
