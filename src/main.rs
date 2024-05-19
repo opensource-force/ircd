@@ -14,7 +14,31 @@ use tokio::{
 };
 
 #[derive(Clone)]
+struct Channel {
+    clients: Vec<Client>,
+    name: String
+}
+
+impl Channel {
+    fn new(name: &str) -> Self {
+        Self {
+            clients: Vec::new(),
+            name: name.to_string()
+        }
+    }
+
+    fn join(&mut self, client: &Client) {
+        if !self.clients.iter().any(|c| c.addr == client.addr) {
+            self.clients.push(client.clone());
+
+            println!("{} joined channel '{}'", client.nickname, self.name);
+        }
+    }
+}
+
+#[derive(Clone)]
 struct Client {
+    server: Arc<Mutex<Server>>,
     addr: String,
     tx: Sender<(String, String)>,
     nickname: String,
@@ -31,6 +55,7 @@ struct Client {
 impl Client {
     fn new(addr: String, tx: Sender<(String, String)>) -> Self {
         Self {
+            server: Arc::new(Mutex::new(Server::new())),
             addr,
             tx,
             nickname: String::new(),
@@ -72,6 +97,24 @@ impl Client {
         }
     }
 
+    async fn join_msg(&self, params: Vec<String>) {
+        let channel_names: Vec<&str> = params[0].split(',').collect();
+        let mut server = self.server.lock().await;
+
+        for name in channel_names {
+            if !server.channels.iter().any(|c| c.name == name) {
+                let mut channel = Channel::new(name);
+                server.channels.push(channel.clone());
+
+                channel.join(self);
+                // send topic (RPL_TOPIC)
+                // send list of clients in channel (RPL_NAMERPLY)
+            }
+        }
+
+        drop(server);
+    }
+
     fn try_register(&mut self) {
         if self.got_nick && self.got_user && !self.registered {
             println!("{} registered as {}", self.addr, self.nickname);
@@ -83,14 +126,16 @@ impl Client {
 #[derive(Clone)]
 struct Server {
     addr: String,
-    clients: Vec<Client>
+    clients: Vec<Client>,
+    channels: Vec<Channel>
 }
 
 impl Server {
     fn new() -> Self {
         Self {
             addr: String::new(),
-            clients: Vec::new()
+            clients: Vec::new(),
+            channels: Vec::new()
         }
     }
 
@@ -108,7 +153,7 @@ impl Server {
         println!("{} sockets remain", self.clients.len());
     }
 
-    async fn accept(
+    async fn handle(
         this: Arc<Mutex<Server>>,
         mut client: Client,
         socket: TcpStream
@@ -119,6 +164,7 @@ impl Server {
         let mut buf = String::new();
 
         { this.lock().await.add_client(client.clone()); }
+        client.server = Arc::clone(&this);
 
         loop {
             tokio::select! {
@@ -135,49 +181,52 @@ impl Server {
                     let (line, addr) = stream.unwrap();
 
                     if addr == client.addr {
+                        writer.write(line.as_bytes()).await.unwrap();
+                        writer.flush().await.unwrap();
+
                         let parts: Vec<&str> = line.split(':').collect();
                         let args: Vec<&str> = parts[0].split_whitespace().collect();
                         let prefix = parts[1..].join(" ");
-                        let cmd = args[0];
-                        let params: Vec<String> = args[1..].iter().map(|s| s.to_string()).collect();
-                        
-                        match cmd {
-                            "PASS" => {}
-                            "NICK" => client.nick_msg(params),
-                            "USER" => client.user_msg(prefix, params),
-                            _ => {}
+                        if let Some(cmd) = args.get(0) {
+                            let params: Vec<String> = args[1..].iter().map(|s| s.to_string()).collect();
+                            
+                            match *cmd {
+                                "PASS" => {}
+                                "NICK" => client.nick_msg(params),
+                                "USER" => client.user_msg(prefix, params),
+                                "JOIN" => client.join_msg(params).await,
+                                _ => {}
+                            }
                         }
 
                         client.try_register();
                     }
-
-                    /*
-                    if addr == SOME_addr || addr == this.lock().await.addr {
-                        writer.write(line.as_bytes()).await.unwrap();
-                        writer.flush().await.unwrap();
-                    }
-                    */
                 }
             }
         }
     }
 
-    async fn run(self, listen_addr: &str) {
-        let listener = TcpListener::bind(listen_addr).await.unwrap();
-        let (tx, _) = broadcast::channel(10);
+    async fn accept(self, listener: TcpListener, tx: Sender<(String, String)>) {
         let this = Arc::new(Mutex::new(self));
-
-        { this.lock().await.addr = listen_addr.to_string(); }
-
-        println!("Listening on {}", listen_addr);
 
         loop {
             let this = Arc::clone(&this);
             let (socket, addr) = listener.accept().await.unwrap();
             let client = Client::new(addr.to_string(), tx.clone());
 
-            tokio::spawn(Self::accept(this, client, socket));
+            tokio::spawn(Self::handle(this, client, socket));
         }
+    }
+
+    async fn run(mut self, listen_addr: &str) {
+        let listener = TcpListener::bind(listen_addr).await.unwrap();
+        let (tx, _) = broadcast::channel(10);
+
+        self.addr = listen_addr.to_string();
+
+        println!("Listening on {}", listen_addr);
+
+        self.accept(listener, tx).await;
     }
 }
 
