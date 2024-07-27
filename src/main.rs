@@ -53,9 +53,9 @@ struct Client {
 }
 
 impl Client {
-    fn new(addr: String, tx: Sender<(String, String)>) -> Self {
+    fn new(server: Arc<Mutex<Server>>, addr: String, tx: Sender<(String, String)>) -> Self {
         Self {
-            server: Arc::new(Mutex::new(Server::new())),
+            server,
             addr,
             tx,
             nickname: String::new(),
@@ -81,7 +81,9 @@ impl Client {
         }
     }
 
-    fn user_msg(&mut self, prefix: String, params: Vec<String>) {
+    async fn user_msg(&mut self, prefix: String, params: Vec<String>) {
+        let server = self.server.lock().await;
+
         match params.as_slice() {
             [user, host, server, ..] => {
                 self.username = user.clone();
@@ -95,6 +97,33 @@ impl Client {
             }
             _ => {}
         }
+
+        // Send responses 
+        // 001 (RPL_WELCOME): Welcome message.
+        let rpl_welcome = format!(":{} 001 {} :Welcome to the Internet Relay Network {}\r\n", 
+            server.addr, self.nickname, self.nickname);
+        self.tx.send((rpl_welcome, self.addr.clone())).unwrap();
+
+        // 002 (RPL_YOURHOST): Information about the server.
+        let rpl_yourhost = format!(":{} 002 {} :Your host is {}, running version {}\r\n", 
+            server.addr, self.nickname, server.addr, env!("CARGO_PKG_VERSION"));
+        self.tx.send((rpl_yourhost, self.addr.clone())).unwrap();
+
+        // 003 (RPL_CREATED): The server creation date.
+        let rpl_created = format!(":{} 003 {} :This server was last built {}\r\n", 
+            server.addr, self.nickname, std::env::var("BUILD_DATE").unwrap_or_else(|_| String::from("unknown")));
+        self.tx.send((rpl_created, self.addr.clone())).unwrap();
+        
+        // 004 (RPL_MYINFO): Server details including supported modes.
+        let rpl_myinfo = format!(":{} 004 {} {} {} {} {}\r\n", 
+            server.addr, self.nickname, server.addr, env!("CARGO_PKG_VERSION"), "OQRSZaghilsvb", "CFILPQbcefgijklmnopqrstvz");
+        self.tx.send((rpl_myinfo, self.addr.clone())).unwrap();
+
+        // 005 (RPL_ISUPPORT): Server capabilities such as channel types, prefixes, and channel modes.
+        let rpl_isupport = format!(":{} 005 {} PREFIX=(ov)@+ CHANTYPES=#& :are supported by this server\r\n", 
+            server.addr, self.nickname);
+        self.tx.send((rpl_isupport, self.addr.clone())).unwrap();
+
     }
 
     async fn join_msg(&self, params: Vec<String>) {
@@ -107,8 +136,25 @@ impl Client {
                 server.channels.push(channel.clone());
 
                 channel.join(self);
+
+                // send join message (RPL_JOIN)
+                let rpl_join = format!(":{} JOIN :{}\r\n", self.nickname, name);
+                self.tx.send((rpl_join, self.addr.clone())).unwrap();
+                
                 // send topic (RPL_TOPIC)
-                // send list of clients in channel (RPL_NAMERPLY)
+                let rpl_topic = format!(":{} 332 {} {} :No topic is set\r\n", server.addr, self.nickname, name);
+                self.tx.send((rpl_topic, self.addr.clone())).unwrap();
+
+                // send list of clients in channel (RPL_NAMREPLY)
+                let nicklist = channel.clients.iter().map(|c| c.nickname.clone()).collect::<Vec<String>>().join(" ");
+                let rpl_namreply = format!(":{} 353 {} = {} :{}\r\n", 
+                    server.addr, self.nickname, channel.name, nicklist);
+                self.tx.send((rpl_namreply, self.addr.clone())).unwrap();
+
+                // RPL_ENDOFNAMES
+                let rpl_endofnames = format!(":{} 366 {} {} :End of /NAMES list\r\n", 
+                    server.addr, self.nickname, channel.name);
+                self.tx.send((rpl_endofnames, self.addr.clone())).unwrap();
             }
         }
 
@@ -126,14 +172,16 @@ impl Client {
 #[derive(Clone)]
 struct Server {
     addr: String,
+    port: String, 
     clients: Vec<Client>,
     channels: Vec<Channel>
 }
 
 impl Server {
-    fn new() -> Self {
+    fn new(addr: String, port: String) -> Self {
         Self {
-            addr: String::new(),
+            addr,
+            port,
             clients: Vec::new(),
             channels: Vec::new()
         }
@@ -193,7 +241,7 @@ impl Server {
                             match *cmd {
                                 "PASS" => {}
                                 "NICK" => client.nick_msg(params),
-                                "USER" => client.user_msg(prefix, params),
+                                "USER" => client.user_msg(prefix, params).await,
                                 "JOIN" => client.join_msg(params).await,
                                 _ => {}
                             }
@@ -212,17 +260,16 @@ impl Server {
         loop {
             let this = Arc::clone(&this);
             let (socket, addr) = listener.accept().await.unwrap();
-            let client = Client::new(addr.to_string(), tx.clone());
+            let client = Client::new(Arc::clone(&this), addr.to_string(), tx.clone());
 
             tokio::spawn(Self::handle(this, client, socket));
         }
     }
 
-    async fn run(mut self, listen_addr: &str) {
-        let listener = TcpListener::bind(listen_addr).await.unwrap();
+    async fn run(self) {
+        let listen_addr = format!("{}:{}", self.addr, self.port);
+        let listener = TcpListener::bind(&listen_addr).await.unwrap();
         let (tx, _) = broadcast::channel(10);
-
-        self.addr = listen_addr.to_string();
 
         println!("Listening on {}", listen_addr);
 
@@ -232,7 +279,9 @@ impl Server {
 
 #[tokio::main]
 async fn main() {
-    let server = Server::new();
+    let addr = String::from("192.168.1.56");
+    let port = String::from("6667");
+    let server = Server::new(addr, port);
 
-    server.run("192.168.1.56:6667").await;
+    server.run().await;
 }
