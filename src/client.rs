@@ -74,8 +74,8 @@ impl Client {
 
         // Send responses 
         // 001 (RPL_WELCOME): Welcome message.
-        let rpl_welcome = format!(":{} 001 {} :Welcome to the Internet Relay Network {}\r\n", 
-            server.addr, self.nickname, self.nickname);
+        let rpl_welcome = format!(":{} 001 {} :{}\r\n", 
+            server.addr, self.nickname, &server.config.messages.welcome);
         self.send_msg(rpl_welcome);
 
         // 002 (RPL_YOURHOST): Information about the server.
@@ -84,19 +84,19 @@ impl Client {
         self.send_msg(rpl_yourhost);
 
         // 003 (RPL_CREATED): The server creation date.
-        let rpl_created = format!(":{} 003 {} :This server was last built {}\r\n", 
-            server.addr, self.nickname, std::env::var("BUILD_DATE").unwrap_or_else(|_| String::from("unknown")));
-        self.send_msg(rpl_created);
+        //let rpl_created = format!(":{} 003 {} :This server was last built {}\r\n", 
+        //    server.addr, self.nickname, std::env::var("BUILD_DATE").unwrap_or_else(|_| String::from("unknown")));
+        //self.send_msg(rpl_created);
         
         // 004 (RPL_MYINFO): Server details including supported modes.
-        let rpl_myinfo = format!(":{} 004 {} {} {} {} {}\r\n", 
-            server.addr, self.nickname, server.addr, env!("CARGO_PKG_VERSION"), "OQRSZaghilsvb", "CFILPQbcefgijklmnopqrstvz");
-        self.tx.send((rpl_myinfo, self.addr.clone())).unwrap();
+        //let rpl_myinfo = format!(":{} 004 {} {} {} {} {}\r\n", 
+        //    server.addr, self.nickname, server.addr, env!("CARGO_PKG_VERSION"), "OQRSZaghilsvb", "CFILPQbcefgijklmnopqrstvz");
+        //self.tx.send((rpl_myinfo, self.addr.clone())).unwrap();
 
         // 005 (RPL_ISUPPORT): Server capabilities such as channel types, prefixes, and channel modes.
-        let rpl_isupport = format!(":{} 005 {} PREFIX=(ov)@+ CHANTYPES=#& :are supported by this server\r\n", 
-            server.addr, self.nickname);
-        self.tx.send((rpl_isupport, self.addr.clone())).unwrap();
+        //let rpl_isupport = format!(":{} 005 {} PREFIX=(ov)@+ CHANTYPES=#& :are supported by this server\r\n", 
+        //    server.addr, self.nickname);
+        //self.tx.send((rpl_isupport, self.addr.clone())).unwrap();
 
     }
 
