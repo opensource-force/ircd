@@ -1,0 +1,6 @@
+[server]
+addr = "192.168.0.202"
+port = "6668"
+
+[messages]
+welcome = "Welcome to the server!"

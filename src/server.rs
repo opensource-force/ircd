@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use crate::channel::Channel;
 use crate::client::Client;
+use crate::configuration::Config;
 
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -13,14 +14,16 @@ pub struct Server {
     pub addr: String,
     port: String, 
     clients: Vec<Client>,
-    pub channels: Vec<Channel>
+    pub channels: Vec<Channel>,
+    pub config: Config,
 }
 
 impl Server {
-    pub fn new(addr: String, port: String) -> Self {
+    pub fn new(config: Config) -> Self {
         Self {
-            addr,
-            port,
+            config: config.clone(),
+            addr: String::from(&config.server.addr),
+            port: String::from(&config.server.port),
             clients: Vec::new(),
             channels: Vec::new()
         }
@@ -40,11 +43,7 @@ impl Server {
         println!("{} sockets remain", self.clients.len());
     }
 
-    async fn handle(
-        this: Arc<Mutex<Server>>,
-        mut client: Client,
-        socket: TcpStream
-    ) {
+    async fn handle(this: Arc<Mutex<Server>>, mut client: Client, socket: TcpStream) {
         let mut rx = client.tx.subscribe();
         let (reader, mut writer) = socket.into_split();
         let mut reader = BufReader::new(reader);
